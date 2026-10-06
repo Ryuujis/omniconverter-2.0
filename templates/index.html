@@ -1,934 +1,561 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="tr">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>OmniConvert Studio - Instagram Reels, YouTube & Dosya Dönüştürücü</title>
-    <meta name="description" content="Instagram Reels indir, YouTube videolarını MP4 ve MP3'e çevir, PNG'yi JPG ve WEBP'ye dönüştür, PDF oluştur ve çok daha fazlası.">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="/static/css/style.css">
-    <!-- Local fallback libraries -->
-    <script src="/static/libs/jszip.min.js"></script>
-    <script src="/static/libs/jspdf.umd.min.js"></script>
-    <script src="/static/libs/qrcode.min.js"></script>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="color-scheme" content="dark">
+  <meta name="theme-color" content="#09090b">
+  <title>OmniConvert Studio</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='9' fill='%2309090b'/%3E%3Ccircle cx='16' cy='16' r='8.5' fill='none' stroke='%23ff5a36' stroke-width='2.4'/%3E%3Ccircle cx='22.5' cy='9.5' r='2.6' fill='%23f1ebe0'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
-<body class="dark-theme">
-    <!-- Ambient Background Glows -->
-    <div class="ambient-glow glow-1"></div>
-    <div class="ambient-glow glow-2"></div>
-    <div class="ambient-glow glow-3"></div>
-
-    <div class="app-wrapper">
-        <!-- Modern Header -->
-        <header class="app-header">
-            <div class="header-container">
-                <div class="brand">
-                    <div class="brand-icon">
-                        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                            <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
-                        </svg>
-                    </div>
-                    <div class="brand-text">
-                        <div class="brand-title">Omni<span class="gradient-text">Convert</span> <span class="badge-pro">PRO</span></div>
-                        <div class="brand-subtitle">Medya & Format Dönüştürme Stüdyosu</div>
-                    </div>
-                </div>
-
-                <div class="header-actions">
-                    <div class="status-pill" id="backendStatusPill" title="Sunucu durumu">
-                        <span class="status-dot online"></span>
-                        <span class="status-text">Motor Aktif</span>
-                    </div>
-                    
-                    <button class="btn-icon" id="quickPasteBtn" title="Panodan Link Yapıştır">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path>
-                            <rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect>
-                        </svg>
-                        <span>Hızlı Yapıştır</span>
-                    </button>
-                </div>
-            </div>
-        </header>
-
-        <!-- Main Navigation Tabs -->
-        <nav class="main-tabs" aria-label="Araç Sekmeleri">
-            <div class="tabs-container">
-                <button class="tab-btn active" data-tab="socialTab" id="tabBtnSocial">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <rect x="2" y="2" width="20" height="20" rx="2.18" ry="2.18"></rect>
-                        <line x1="7" y1="2" x2="7" y2="22"></line>
-                        <line x1="17" y1="2" x2="17" y2="22"></line>
-                        <line x1="2" y1="12" x2="22" y2="12"></line>
-                        <line x1="2" y1="7" x2="7" y2="7"></line>
-                        <line x1="2" y1="17" x2="7" y2="17"></line>
-                        <line x1="17" y1="17" x2="22" y2="17"></line>
-                        <line x1="17" y1="7" x2="22" y2="7"></line>
-                    </svg>
-                    <span>Reels & Video İndirici</span>
-                    <span class="tab-highlight">Instagram & YouTube</span>
-                </button>
-
-                <button class="tab-btn" data-tab="imageTab" id="tabBtnImage">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
-                        <circle cx="8.5" cy="8.5" r="1.5"></circle>
-                        <polyline points="21 15 16 10 5 21"></polyline>
-                    </svg>
-                    <span>Görsel Dönüştürücü</span>
-                    <span class="tab-highlight">PNG, JPG, WEBP, SVG</span>
-                </button>
-
-                <button class="tab-btn" data-tab="pdfTab" id="tabBtnPdf">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                        <polyline points="14 2 14 8 20 8"></polyline>
-                        <line x1="16" y1="13" x2="8" y2="13"></line>
-                        <line x1="16" y1="17" x2="8" y2="17"></line>
-                        <polyline points="10 9 9 9 8 9"></polyline>
-                    </svg>
-                    <span>Belge & PDF Stüdyosu</span>
-                    <span class="tab-highlight">Word, Metin & Görseller</span>
-                </button>
-
-                <button class="tab-btn" data-tab="audioTab" id="tabBtnAudio">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M9 18V5l12-2v13"></path>
-                        <circle cx="6" cy="18" r="3"></circle>
-                        <circle cx="18" cy="16" r="3"></circle>
-                    </svg>
-                    <span>Videodan Ses Çıkar</span>
-                    <span class="tab-highlight">MP4 → MP3/WAV</span>
-                </button>
-
-                <button class="tab-btn" data-tab="toolsTab" id="tabBtnTools">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path>
-                    </svg>
-                    <span>Hızlı Araçlar</span>
-                    <span class="tab-highlight">QR & Renk</span>
-                </button>
-            </div>
-        </nav>
-
-        <!-- Main Content Canvas -->
-        <main class="main-content">
-            <!-- TAB 1: SOCIAL MEDIA DOWNLOADER (INSTAGRAM & YOUTUBE) -->
-            <section class="tab-pane active" id="socialTab">
-                <div class="panel-card hero-panel">
-                    <div class="panel-header">
-                        <div class="panel-badge">
-                            <span class="pulse-indicator"></span>
-                            Instagram Reels & YouTube Downloader
-                        </div>
-                        <h1 class="panel-title">Instagram Reels & YouTube Medya İndirici</h1>
-                        <p class="panel-desc">Instagram Reels, Gönderi, YouTube Video ve Shorts linklerini yapıştırın; yüksek kalitede MP4 video veya MP3 ses olarak anında indirin.</p>
-                    </div>
-
-                    <!-- Modern Search Input Bar -->
-                    <div class="url-input-container">
-                        <div class="url-input-box">
-                            <div class="input-icon-platform" id="detectedPlatformIcon">
-                                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                    <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
-                                    <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
-                                </svg>
-                            </div>
-                            <input type="url" id="mediaUrlInput" placeholder="Instagram Reels veya YouTube linki yapıştırın (örn: https://instagram.com/reel/...)" autocomplete="off" spellcheck="false">
-                            <button class="input-clear-btn" id="clearUrlBtn" title="Temizle" style="display: none;">&times;</button>
-                            <button class="btn-primary" id="fetchMediaBtn">
-                                <span class="btn-text">İçeriği Getir</span>
-                                <span class="spinner" style="display: none;"></span>
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                                    <line x1="5" y1="12" x2="19" y2="12"></line>
-                                    <polyline points="12 5 19 12 12 19"></polyline>
-                                </svg>
-                            </button>
-                        </div>
-                    </div>
-
-                    <!-- Pre-download Quality Preference Selector -->
-                    <div class="quality-pref-container">
-                        <div class="quality-pref-header">
-                            <span class="quality-pref-title">
-                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
-                                </svg>
-                                Hedef Kalite Seçimi:
-                            </span>
-                            <span class="quality-pref-desc">İndirmek istediğiniz kaliteyi önceden belirleyin</span>
-                        </div>
-                        <div class="quality-pills-group" id="preferredQualityGroup">
-                            <button type="button" class="q-pill active" data-q="auto">
-                                <span class="q-pill-dot"></span>
-                                <span>✨ Otomatik (En Yüksek)</span>
-                            </button>
-                            <button type="button" class="q-pill" data-q="1080p">
-                                <span>💎 1080p Full HD</span>
-                            </button>
-                            <button type="button" class="q-pill" data-q="720p">
-                                <span>⚡ 720p HD</span>
-                            </button>
-                            <button type="button" class="q-pill" data-q="480p">
-                                <span>📱 480p SD</span>
-                            </button>
-                            <button type="button" class="q-pill" data-q="360p">
-                                <span>💾 360p Hızlı</span>
-                            </button>
-                            <button type="button" class="q-pill" data-q="audio">
-                                <span>🎵 Sadece Ses (MP3)</span>
-                            </button>
-                        </div>
-                    </div>
-
-                    <!-- Platform Pill Quick Badges -->
-                    <div class="platform-support-bar">
-                        <span class="support-label">Desteklenen Platformlar:</span>
-                        <div class="platform-chips">
-                            <span class="chip instagram-chip">
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-                                    <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/>
-                                </svg>
-                                Instagram Reels & Post
-                            </span>
-                            <span class="chip youtube-chip">
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-                                    <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
-                                </svg>
-                                YouTube Video & Shorts
-                            </span>
-                            <span class="chip tiktok-chip">TikTok & Twitter / X</span>
-                            <button class="chip-demo" id="demoIgBtn">⚡ Örnek IG Reel Dene</button>
-                            <button class="chip-demo" id="demoYtBtn">⚡ Örnek YouTube Dene</button>
-                        </div>
-                    </div>
-
-                    <!-- Result Display Area -->
-                    <div class="media-result-container" id="mediaResultArea" style="display: none;">
-                        <div class="result-card">
-                            <!-- Left: Thumbnail & Live Player -->
-                            <div class="result-preview-col">
-                                <div class="media-visual-wrapper">
-                                    <img id="mediaThumbnail" class="media-thumb" src="" alt="Medya Önizleme">
-                                    <div class="media-badge-tag" id="mediaPlatformTag">Instagram</div>
-                                    <div class="video-duration" id="mediaDurationTag">00:00</div>
-                                </div>
-
-                                <div class="player-toggle-area">
-                                    <button class="btn-secondary btn-sm" id="toggleInlinePlayerBtn">
-                                        <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
-                                            <polygon points="5 3 19 12 5 21 5 3"></polygon>
-                                        </svg>
-                                        <span>Tarayıcıda Canlı Oynat</span>
-                                    </button>
-                                </div>
-
-                                <!-- Dynamic Inline Player Container -->
-                                <div class="inline-player-box" id="inlinePlayerBox" style="display: none;"></div>
-                            </div>
-
-                            <!-- Right: Media Details & Download Actions -->
-                            <div class="result-details-col">
-                                <div class="media-meta">
-                                    <h3 class="media-title" id="mediaTitle">Video Başlığı</h3>
-                                    <div class="media-author" id="mediaAuthor">
-                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-                                             <circle cx="12" cy="7" r="4"></circle>
-                                        </svg>
-                                        <span id="mediaAuthorName">Kanal / Yazar</span>
-                                    </div>
-                                </div>
-
-                                <!-- Direct Download Buttons Group with Quality Filter -->
-                                <div class="download-formats-group">
-                                    <div class="formats-header-flex">
-                                        <h4 class="format-group-title">🎯 İndirme Seçenekleri & Kalite</h4>
-                                        <div class="result-quality-filter" id="resultQualityFilter">
-                                            <button class="filter-tab-btn active" data-filter="all">Tümü</button>
-                                            <button class="filter-tab-btn" data-filter="1080p">1080p</button>
-                                            <button class="filter-tab-btn" data-filter="720p">720p</button>
-                                            <button class="filter-tab-btn" data-filter="sd">480p/360p</button>
-                                            <button class="filter-tab-btn" data-filter="audio">🎵 MP3</button>
-                                        </div>
-                                    </div>
-                                    
-                                    <div class="format-buttons-grid" id="formatButtonsGrid">
-                                        <!-- Populated via JS -->
-                                    </div>
-                                </div>
-
-                                <!-- Smart Fallback / 1-Click Alternate Mirrors -->
-                                <div class="smart-mirrors-box">
-                                    <div class="mirrors-header">
-                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                            <circle cx="12" cy="12" r="10"></circle>
-                                            <line x1="12" y1="16" x2="12" y2="12"></line>
-                                            <line x1="12" y1="8" x2="12.01" y2="8"></line>
-                                        </svg>
-                                        <span>Hızlı Alternatif & İndirme Aynaları (1 Tıkla Hazır):</span>
-                                    </div>
-                                    <div class="mirror-links" id="mirrorLinksList">
-                                        <!-- Populated via JS -->
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </section>
-
-            <!-- TAB 2: ADVANCED IMAGE CONVERTER (PNG -> JPG, WEBP, SVG, RESIZE, BATCH) -->
-            <section class="tab-pane" id="imageTab">
-                <div class="panel-card">
-                    <div class="panel-header">
-                        <div class="panel-badge">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
-                            </svg>
-                            Ultra Hızlı Görsel Dönüştürücü
-                        </div>
-                        <h2 class="panel-title">PNG, JPG, WEBP, SVG & Format Çevirici</h2>
-                        <p class="panel-desc">Görsellerinizi istediğiniz formata dönüştürün, boyutlandırın ve optimize edin. Toplu dönüştürme ve tek tıkla ZIP indirme desteklenir.</p>
-                    </div>
-
-                    <!-- Drag and Drop Zone -->
-                    <div class="dropzone-area" id="imageDropzone">
-                        <input type="file" id="imageFileInput" multiple accept="image/*,.svg" style="display: none;">
-                        <div class="dropzone-content">
-                            <div class="dropzone-icon">
-                                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                                    <polyline points="17 8 12 3 7 8"></polyline>
-                                    <line x1="12" y1="3" x2="12" y2="15"></line>
-                                </svg>
-                            </div>
-                            <h3 class="dropzone-title">Görselleri Buraya Sürükleyip Bırakın</h3>
-                            <p class="dropzone-subtitle">veya dosya seçmek için tıklayın • Panodan yapıştırabilirsiniz (Ctrl+V / Cmd+V)</p>
-                            <div class="dropzone-badges">
-                                <span>PNG</span>
-                                <span>JPG / JPEG</span>
-                                <span>WEBP</span>
-                                <span>SVG</span>
-                                <span>GIF</span>
-                                <span>BMP</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Conversion Configuration Controls -->
-                    <div class="converter-controls-box" id="imageControlsBox">
-                        <div class="controls-grid">
-                            <!-- Target Format -->
-                            <div class="control-group">
-                                <label class="control-label" for="targetFormatSelect">Hedef Format:</label>
-                                <div class="select-wrapper">
-                                    <select id="targetFormatSelect" class="form-select">
-                                        <option value="jpeg" selected>JPG / JPEG (Standart & Uyumlu)</option>
-                                        <option value="png">PNG (Kayıpsız & Şeffaf)</option>
-                                        <option value="webp">WEBP (Yeni Nesil & Küçük Boyut)</option>
-                                        <option value="bmp">BMP (Sıkıştırmasız Bit Eşlem)</option>
-                                        <option value="ico">ICO (Web Sitesi Faviconu)</option>
-                                    </select>
-                                </div>
-                            </div>
-
-                            <!-- Quality Slider -->
-                            <div class="control-group">
-                                <div class="control-label-row">
-                                    <label class="control-label" for="imageQualitySlider">Kalite & Sıkıştırma:</label>
-                                    <span class="control-val" id="qualityValue">92%</span>
-                                </div>
-                                <input type="range" id="imageQualitySlider" min="10" max="100" value="92" class="form-range">
-                            </div>
-
-                            <!-- Resize Scale -->
-                            <div class="control-group">
-                                <label class="control-label" for="scaleSelect">Boyutlandırma (Ölçek):</label>
-                                <div class="select-wrapper">
-                                    <select id="scaleSelect" class="form-select">
-                                        <option value="1" selected>Orijinal Boyut (%100)</option>
-                                        <option value="0.75">%75 Boyut</option>
-                                        <option value="0.5">%50 Boyut (Web Optimize)</option>
-                                        <option value="0.25">%25 Boyut (Küçük Resim)</option>
-                                        <option value="2">%200 (Büyük 2x)</option>
-                                    </select>
-                                </div>
-                            </div>
-
-                            <!-- Background fill for transparent PNG to JPG -->
-                            <div class="control-group" id="bgColorControlGroup">
-                                <label class="control-label" for="bgColorPicker">Şeffaflık Arka Planı (JPG için):</label>
-                                <div class="color-picker-row">
-                                    <input type="color" id="bgColorPicker" value="#ffffff" class="color-input">
-                                    <span class="color-hex-label" id="bgColorHex">#FFFFFF (Beyaz)</span>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Global Action Bar -->
-                        <div class="converter-actions-bar" id="converterActionsBar" style="display: none;">
-                            <div class="actions-summary">
-                                <span id="filesCountBadge" class="summary-badge">0 Dosya Seçildi</span>
-                                <span id="totalSavingsBadge" class="savings-badge" style="display: none;"></span>
-                            </div>
-                            <div class="actions-buttons">
-                                <button class="btn-secondary" id="clearAllImagesBtn">Tümünü Temizle</button>
-                                <button class="btn-primary" id="convertAllBtn">
-                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                        <polyline points="23 4 23 10 17 10"></polyline>
-                                        <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
-                                    </svg>
-                                    <span>Tümünü Dönüştür</span>
-                                </button>
-                                <button class="btn-success" id="downloadAllZipBtn" style="display: none;">
-                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                                        <polyline points="7 10 12 15 17 10"></polyline>
-                                        <line x1="12" y1="15" x2="12" y2="3"></line>
-                                    </svg>
-                                    <span>Tümünü İndir (ZIP)</span>
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Images List / Queue -->
-                    <div class="file-queue-container" id="imageQueueList">
-                        <!-- Populated dynamically -->
-                    </div>
-                </div>
-            </section>
-
-            <!-- TAB 3: COMPLETE PDF & DOCUMENT STUDIO (WORD, TEXT, IMAGES, QUICK NOTES, MERGER) -->
-            <section class="tab-pane" id="pdfTab">
-                <div class="panel-card">
-                    <div class="panel-header">
-                        <div class="panel-badge">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                            </svg>
-                            Gelişmiş Belge & PDF Stüdyosu
-                        </div>
-                        <h2 class="panel-title">Word, Metin & Görselleri PDF'e Dönüştür</h2>
-                        <p class="panel-desc">Microsoft Word (.docx, .doc), TXT, Markdown veya görsellerinizi profesyonel, yüksek kaliteli PDF belgelerine dönüştürün. İstediğiniz dönüştürme seçeneğini belirleyin:</p>
-                    </div>
-
-                    <!-- PDF Mode Switcher Tabs (Birden Fazla Seçenek) -->
-                    <div class="pdf-mode-nav" id="pdfModeNav">
-                        <button class="pdf-mode-btn active" data-mode="word" id="pdfModeBtnWord" type="button">
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                                <polyline points="14 2 14 8 20 8"></polyline>
-                                <line x1="16" y1="13" x2="8" y2="13"></line>
-                                <line x1="16" y1="17" x2="8" y2="17"></line>
-                            </svg>
-                            <div class="pdf-mode-info">
-                                <span class="mode-name">📄 Word & Metinden PDF'e</span>
-                                <span class="mode-desc">.docx, .doc, .txt, .md, .rtf</span>
-                            </div>
-                        </button>
-
-                        <button class="pdf-mode-btn" data-mode="image" id="pdfModeBtnImage" type="button">
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
-                                <circle cx="8.5" cy="8.5" r="1.5"></circle>
-                                <polyline points="21 15 16 10 5 21"></polyline>
-                            </svg>
-                            <div class="pdf-mode-info">
-                                <span class="mode-name">🖼️ Görsellerden PDF'e</span>
-                                <span class="mode-desc">JPG, PNG, WEBP, SVG</span>
-                            </div>
-                        </button>
-
-                        <button class="pdf-mode-btn" data-mode="quicktext" id="pdfModeBtnText" type="button">
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-                                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
-                            </svg>
-                            <div class="pdf-mode-info">
-                                <span class="mode-name">📝 Hızlı Metin / Not Yazarak PDF</span>
-                                <span class="mode-desc">Dilekçe, Rapor, Not Yaz & İndir</span>
-                            </div>
-                        </button>
-
-                        <button class="pdf-mode-btn" data-mode="combine" id="pdfModeBtnCombine" type="button">
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <rect x="2" y="2" width="16" height="16" rx="2"></rect>
-                                <path d="M6 18v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-2"></path>
-                            </svg>
-                            <div class="pdf-mode-info">
-                                <span class="mode-name">📑 Çoklu Dosya Birleştirici</span>
-                                <span class="mode-desc">Word + Resimleri Tek PDF Yap</span>
-                            </div>
-                        </button>
-                    </div>
-
-                    <!-- ==========================================
-                         MODE 1: WORD & METİN BELGELERİNDEN PDF'E
-                         ========================================== -->
-                    <div class="pdf-mode-view active" id="pdfWordModeView">
-                        <!-- Word Dropzone -->
-                        <div class="dropzone-area" id="wordDropzone">
-                            <input type="file" id="wordFileInput" accept=".docx,.doc,.txt,.md,.markdown,.rtf,.csv,.json,.html" style="display: none;">
-                            <div class="dropzone-content">
-                                <div class="dropzone-icon word-icon-tint">
-                                    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
-                                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                                        <polyline points="14 2 14 8 20 8"></polyline>
-                                        <line x1="16" y1="13" x2="8" y2="13"></line>
-                                        <line x1="16" y1="17" x2="8" y2="17"></line>
-                                        <polyline points="10 9 9 9 8 9"></polyline>
-                                    </svg>
-                                </div>
-                                <h3 class="dropzone-title">Word veya Metin Dosyasını Buraya Bırakın</h3>
-                                <p class="dropzone-subtitle">veya dosya seçmek için tıklayın • .docx, .doc, .txt, .md, .rtf desteklenir</p>
-                                <div class="dropzone-badges">
-                                    <span class="badge-blue">Microsoft Word (.DOCX)</span>
-                                    <span>Eski Word (.DOC)</span>
-                                    <span>Metin Belgesi (.TXT)</span>
-                                    <span>Markdown (.MD)</span>
-                                    <span>Zengin Metin (.RTF)</span>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Word Settings Grid -->
-                        <div class="converter-controls-box" id="wordSettingsBox">
-                            <div class="controls-grid">
-                                <div class="control-group">
-                                    <label class="control-label" for="wordFontFamily">Yazı Tipi (Tipografi):</label>
-                                    <select id="wordFontFamily" class="form-select">
-                                        <option value="helvetica" selected>Helvetica / Arial (Modern Sans-Serif)</option>
-                                        <option value="times">Times New Roman (Resmi & Klasik Serif)</option>
-                                        <option value="courier">Courier (Daktilo & Kod / Monospace)</option>
-                                    </select>
-                                </div>
-
-                                <div class="control-group">
-                                    <label class="control-label" for="wordFontSize">Yazı Boyutu:</label>
-                                    <select id="wordFontSize" class="form-select">
-                                        <option value="10">Küçük (10pt - Kompakt)</option>
-                                        <option value="11" selected>Standart (11pt - Belge Boyutu)</option>
-                                        <option value="12">Orta (12pt - Rahat Okuma)</option>
-                                        <option value="14">Büyük (14pt - Sunum / Büyük)</option>
-                                    </select>
-                                </div>
-
-                                <div class="control-group">
-                                    <label class="control-label" for="wordPageLayout">Sayfa Boyutu & Yönü:</label>
-                                    <select id="wordPageLayout" class="form-select">
-                                        <option value="a4_portrait" selected>A4 Dikey (Standart)</option>
-                                        <option value="a4_landscape">A4 Yatay (Geniş Tablo / Manzara)</option>
-                                        <option value="letter_portrait">US Letter Dikey</option>
-                                        <option value="letter_landscape">US Letter Yatay</option>
-                                    </select>
-                                </div>
-
-                                <div class="control-group">
-                                    <label class="control-label" for="wordMargin">Kenar Boşluğu (Margin):</label>
-                                    <select id="wordMargin" class="form-select">
-                                        <option value="15" selected>Standart (15 mm)</option>
-                                        <option value="10">Dar (10 mm - Fazla İçerik)</option>
-                                        <option value="25">Geniş (25 mm - Resmi Yazı)</option>
-                                    </select>
-                                </div>
-
-                                <div class="control-group">
-                                    <label class="control-label" for="wordPageNumbers">Sayfa Numaralandırması:</label>
-                                    <select id="wordPageNumbers" class="form-select">
-                                        <option value="yes" selected>Otomatik Sayfa Numarası Ekle (Sayfa 1 / X)</option>
-                                        <option value="no">Sayfa Numarası Ekleme</option>
-                                    </select>
-                                </div>
-
-                                <div class="control-group">
-                                    <label class="control-label" for="wordHeaderLine">Üst Başlık Çizgisi & Tarih:</label>
-                                    <select id="wordHeaderLine" class="form-select">
-                                        <option value="yes" selected>Şık Üst Başlık & Oluşturulma Tarihi</option>
-                                        <option value="no">Sade (Başlıksız)</option>
-                                    </select>
-                                </div>
-
-                                <div class="control-group span-2">
-                                    <label class="control-label" for="wordOutputDocName">PDF Çıktı Dosya Adı:</label>
-                                    <input type="text" id="wordOutputDocName" value="donusturulen_belge.pdf" class="form-input">
-                                </div>
-                            </div>
-
-                            <!-- Document Live Preview Card -->
-                            <div class="doc-preview-wrapper" id="wordPreviewWrapper" style="display: none;">
-                                <div class="doc-preview-header">
-                                    <div class="doc-meta-info">
-                                        <span class="doc-file-badge" id="previewFileBadge">📄 Belge Yüklendi</span>
-                                        <span class="doc-stats" id="previewStats">0 Kelime • ~1 Sayfa</span>
-                                    </div>
-                                    <div class="doc-preview-status">✅ Hazır</div>
-                                </div>
-                                <div class="doc-preview-content-box" id="wordPreviewContent">
-                                    <!-- Rendered document preview -->
-                                </div>
-                            </div>
-
-                            <!-- Word Generate Action Bar -->
-                            <div class="converter-actions-bar" id="wordActionBar" style="display: none;">
-                                <span id="wordDocBadge" class="summary-badge">1 Belge Seçildi</span>
-                                <div class="actions-buttons">
-                                    <button class="btn-secondary" id="clearWordBtn" type="button">Belgeyi Temizle</button>
-                                    <button class="btn-primary" id="generateWordPdfBtn" type="button">
-                                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                                            <polyline points="7 10 12 15 17 10"></polyline>
-                                            <line x1="12" y1="15" x2="12" y2="3"></line>
-                                        </svg>
-                                        <span>PDF Olarak Dönüştür ve İndir</span>
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- ==========================================
-                         MODE 2: GÖRSELLERDEN PDF'E (MEVCUT GELİŞTİRİLMİŞ)
-                         ========================================== -->
-                    <div class="pdf-mode-view" id="pdfImageModeView" style="display: none;">
-                        <!-- PDF Image Dropzone -->
-                        <div class="dropzone-area" id="pdfDropzone">
-                            <input type="file" id="pdfFileInput" multiple accept="image/*" style="display: none;">
-                            <div class="dropzone-content">
-                                <div class="dropzone-icon pdf-icon-tint">
-                                    <svg width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
-                                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                                        <polyline points="14 2 14 8 20 8"></polyline>
-                                        <line x1="12" y1="18" x2="12" y2="12"></line>
-                                        <line x1="9" y1="15" x2="15" y2="15"></line>
-                                    </svg>
-                                </div>
-                                <h3 class="dropzone-title">PDF'e Eklenecek Görselleri Yükleyin</h3>
-                                <p class="dropzone-subtitle">Birden fazla görsel seçebilir ve sıralamalarını değiştirebilirsiniz</p>
-                            </div>
-                        </div>
-
-                        <!-- PDF Image Settings -->
-                        <div class="converter-controls-box" id="pdfSettingsBox">
-                            <div class="controls-grid">
-                                <div class="control-group">
-                                    <label class="control-label" for="pdfPageSize">Sayfa Boyutu:</label>
-                                    <select id="pdfPageSize" class="form-select">
-                                        <option value="a4" selected>Standart A4</option>
-                                        <option value="letter">US Letter</option>
-                                        <option value="fit">Görselin Orijinal Boyutu</option>
-                                    </select>
-                                </div>
-
-                                <div class="control-group">
-                                    <label class="control-label" for="pdfOrientation">Yönlendirme:</label>
-                                    <select id="pdfOrientation" class="form-select">
-                                        <option value="portrait" selected>Dikey (Portrait)</option>
-                                        <option value="landscape">Yatay (Landscape)</option>
-                                    </select>
-                                </div>
-
-                                <div class="control-group">
-                                    <label class="control-label" for="pdfMargin">Kenar Boşluğu:</label>
-                                    <select id="pdfMargin" class="form-select">
-                                        <option value="10" selected>Standart (10mm)</option>
-                                        <option value="0">Kenarlıksız (0mm)</option>
-                                        <option value="20">Geniş (20mm)</option>
-                                    </select>
-                                </div>
-
-                                <div class="control-group">
-                                    <label class="control-label" for="pdfDocName">PDF Dosya Adı:</label>
-                                    <input type="text" id="pdfDocName" value="gorseller_belgesi.pdf" class="form-input">
-                                </div>
-                            </div>
-
-                            <!-- PDF Generate Action -->
-                            <div class="converter-actions-bar" id="pdfActionBar" style="display: none;">
-                                <span id="pdfFilesBadge" class="summary-badge">0 Görsel Eklendi</span>
-                                <div class="actions-buttons">
-                                    <button class="btn-secondary" id="clearPdfFilesBtn" type="button">Listeyi Temizle</button>
-                                    <button class="btn-primary" id="generatePdfBtn" type="button">
-                                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                                            <polyline points="7 10 12 15 17 10"></polyline>
-                                            <line x1="12" y1="15" x2="12" y2="3"></line>
-                                        </svg>
-                                        <span>PDF Oluştur ve İndir</span>
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- PDF Image Order Grid -->
-                        <div class="pdf-thumbs-grid" id="pdfThumbsList"></div>
-                    </div>
-
-                    <!-- ==========================================
-                         MODE 3: HIZLI METİN / NOT YAZARAK PDF
-                         ========================================== -->
-                    <div class="pdf-mode-view" id="pdfQuickTextModeView" style="display: none;">
-                        <div class="quick-text-box">
-                            <div class="quick-text-templates">
-                                <span class="template-label">Hazır Şablonlar:</span>
-                                <div class="template-buttons">
-                                    <button type="button" class="btn-template active" data-tmpl="blank">📄 Boş Belge</button>
-                                    <button type="button" class="btn-template" data-tmpl="petition">🏛️ Resmi Dilekçe</button>
-                                    <button type="button" class="btn-template" data-tmpl="meeting">📊 Toplantı Tutanağı</button>
-                                    <button type="button" class="btn-template" data-tmpl="code">💻 Kod / Not Dökümü</button>
-                                </div>
-                            </div>
-
-                            <div class="controls-grid" style="margin-bottom: 1.25rem;">
-                                <div class="control-group">
-                                    <label class="control-label" for="quickDocTitle">Belge Başlığı:</label>
-                                    <input type="text" id="quickDocTitle" class="form-input" placeholder="Örn: Proje Raporu / Dilekçe Başlığı" value="Resmi Yazışma Belgesi">
-                                </div>
-                                <div class="control-group">
-                                    <label class="control-label" for="quickDocAuthor">Hazırlayan / Kurum:</label>
-                                    <input type="text" id="quickDocAuthor" class="form-input" placeholder="Ad Soyad veya Kurum Adı" value="OmniConvert Kullanıcısı">
-                                </div>
-                            </div>
-
-                            <div class="form-group">
-                                <label class="control-label" for="quickDocBody">Belge Metni (Paragraflar, Başlıklar, Maddeler):</label>
-                                <textarea id="quickDocBody" class="form-textarea quick-textarea" rows="10" placeholder="Belgenizin metnini buraya yazın veya panodan yapıştırın..."></textarea>
-                            </div>
-
-                            <div class="converter-actions-bar" style="margin-top: 1.2rem; display: flex;">
-                                <span class="summary-badge" id="quickTextWordCounter">0 Kelime</span>
-                                <div class="actions-buttons">
-                                    <button class="btn-secondary" id="clearQuickTextBtn" type="button">Metni Temizle</button>
-                                    <button class="btn-primary" id="generateQuickTextPdfBtn" type="button">
-                                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                                            <polyline points="7 10 12 15 17 10"></polyline>
-                                            <line x1="12" y1="15" x2="12" y2="3"></line>
-                                        </svg>
-                                        <span>PDF Olarak İndir</span>
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- ==========================================
-                         MODE 4: ÇOKLU DOSYA BİRLEŞTİRİCİ (WORD + RESİMLER)
-                         ========================================== -->
-                    <div class="pdf-mode-view" id="pdfCombineModeView" style="display: none;">
-                        <div class="dropzone-area" id="combineDropzone">
-                            <input type="file" id="combineFileInput" multiple accept=".docx,.doc,.txt,.md,image/*" style="display: none;">
-                            <div class="dropzone-content">
-                                <div class="dropzone-icon combine-icon-tint">
-                                    <svg width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
-                                        <rect x="2" y="2" width="16" height="16" rx="2"></rect>
-                                        <path d="M6 18v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-2"></path>
-                                    </svg>
-                                </div>
-                                <h3 class="dropzone-title">Birleştirilecek Dosyaları Yükleyin</h3>
-                                <p class="dropzone-subtitle">Word belgeleri (.docx), metin dosyaları (.txt, .md) ve fotoğrafları aynı anda seçin; tek bir PDF'te birleşsin</p>
-                            </div>
-                        </div>
-
-                        <!-- Combined Files List -->
-                        <div class="combine-queue-container" id="combineQueueList"></div>
-
-                        <!-- Combine Action Bar -->
-                        <div class="converter-actions-bar" id="combineActionBar" style="display: none; margin-top: 1.5rem;">
-                            <span id="combineFilesBadge" class="summary-badge">0 Dosya Seçildi</span>
-                            <div class="actions-buttons">
-                                <button class="btn-secondary" id="clearCombineBtn" type="button">Listeyi Temizle</button>
-                                <button class="btn-primary" id="generateCombinePdfBtn" type="button">
-                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                                        <polyline points="7 10 12 15 17 10"></polyline>
-                                        <line x1="12" y1="15" x2="12" y2="3"></line>
-                                    </svg>
-                                    <span>Tümünü Birleştir & PDF İndir</span>
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </section>
-
-            <!-- TAB 4: VIDEO TO AUDIO EXTRACTOR (WEB AUDIO API) -->
-            <section class="tab-pane" id="audioTab">
-                <div class="panel-card">
-                    <div class="panel-header">
-                        <div class="panel-badge">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
-                                <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path>
-                            </svg>
-                            Tarayıcı İçi Ses Ayıklayıcı
-                        </div>
-                        <h2 class="panel-title">Videodan Ses Çıkarıcı (MP4 → MP3 / WAV)</h2>
-                        <p class="panel-desc">Cihazınızdaki herhangi bir video dosyasını (MP4, MOV, WebM, AVI) yükleyin. Tarayıcınız ses kanalını anında ayıklasın; internete video yüklemeden saniyeler içinde ses dosyasını indirin!</p>
-                    </div>
-
-                    <!-- Audio Dropzone -->
-                    <div class="dropzone-area" id="audioDropzone">
-                        <input type="file" id="videoForAudioInput" accept="video/*" style="display: none;">
-                        <div class="dropzone-content">
-                            <div class="dropzone-icon audio-icon-tint">
-                                <svg width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
-                                    <path d="M9 18V5l12-2v13"></path>
-                                    <circle cx="6" cy="18" r="3"></circle>
-                                    <circle cx="18" cy="16" r="3"></circle>
-                                </svg>
-                            </div>
-                            <h3 class="dropzone-title">Video Dosyasını Buraya Bırakın</h3>
-                            <p class="dropzone-subtitle">MP4, WebM, MOV, MKV veya AVI desteklenir</p>
-                        </div>
-                    </div>
-
-                    <!-- Audio Extraction Status and Player -->
-                    <div class="audio-result-card" id="audioResultCard" style="display: none;">
-                        <div class="audio-info-header">
-                            <div class="audio-track-details">
-                                <h4 id="audioFileName" class="track-title">video.mp4</h4>
-                                <span id="audioTrackDuration" class="track-meta">Süre: Hesaplanıyor...</span>
-                            </div>
-                            <div class="extraction-status" id="extractionProgressText">Hazırlanıyor...</div>
-                        </div>
-
-                        <!-- Audio Visualizer / Player -->
-                        <div class="audio-player-wrapper">
-                            <audio id="extractedAudioPlayer" controls class="custom-audio-player"></audio>
-                        </div>
-
-                        <div class="audio-actions-row">
-                            <button class="btn-primary" id="downloadWavBtn">
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                                    <polyline points="7 10 12 15 17 10"></polyline>
-                                    <line x1="12" y1="15" x2="12" y2="3"></line>
-                                </svg>
-                                <span>Kayıpsız WAV Olarak İndir (Yüksek Kalite)</span>
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </section>
-
-            <!-- TAB 5: QUICK TOOLS (QR CODE & COLOR CONVERTER & BASE64) -->
-            <section class="tab-pane" id="toolsTab">
-                <div class="tools-grid-layout">
-                    <!-- Tool 1: QR Code Generator -->
-                    <div class="panel-card tool-card">
-                        <div class="panel-header">
-                            <div class="panel-badge">Araç 1</div>
-                            <h3 class="panel-title">QR Kod Üretici & İndirici</h3>
-                            <p class="panel-desc">Web adresi veya metin girip anında yüksek çözünürlüklü QR kod oluşturun.</p>
-                        </div>
-
-                        <div class="tool-body">
-                            <div class="form-group">
-                                <label for="qrTextInput">QR İçeriği (URL veya Metin):</label>
-                                <input type="text" id="qrTextInput" value="https://instagram.com" class="form-input" placeholder="Metin veya bağlantı yazın...">
-                            </div>
-
-                            <div class="qr-preview-box">
-                                <div id="qrcodeCanvas"></div>
-                            </div>
-
-                            <div class="tool-actions-row">
-                                <button class="btn-primary btn-sm" id="downloadQrPngBtn">PNG İndir</button>
-                                <button class="btn-secondary btn-sm" id="downloadQrJpgBtn">JPG İndir</button>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Tool 2: Color Code Converter -->
-                    <div class="panel-card tool-card">
-                        <div class="panel-header">
-                            <div class="panel-badge">Araç 2</div>
-                            <h3 class="panel-title">Renk Kodu Dönüştürücü</h3>
-                            <p class="panel-desc">HEX, RGB, HSL ve CMYK formatları arasında anlık çift yönlü çeviri.</p>
-                        </div>
-
-                        <div class="tool-body">
-                            <div class="color-preview-banner" id="colorBanner" style="background-color: #6366f1;">
-                                <input type="color" id="interactiveColorPicker" value="#6366f1" class="hidden-color-input">
-                                <span class="click-to-change-hint">Rengi değiştirmek için tıkla</span>
-                            </div>
-
-                            <div class="color-inputs-list">
-                                <div class="color-row">
-                                    <span class="color-tag">HEX:</span>
-                                    <input type="text" id="hexInput" value="#6366F1" class="form-input mono">
-                                    <button class="btn-copy" data-target="hexInput" title="Kopyala">📋</button>
-                                </div>
-                                <div class="color-row">
-                                    <span class="color-tag">RGB:</span>
-                                    <input type="text" id="rgbInput" value="rgb(99, 102, 241)" class="form-input mono">
-                                    <button class="btn-copy" data-target="rgbInput" title="Kopyala">📋</button>
-                                </div>
-                                <div class="color-row">
-                                    <span class="color-tag">HSL:</span>
-                                    <input type="text" id="hslInput" value="hsl(239, 84%, 67%)" class="form-input mono">
-                                    <button class="btn-copy" data-target="hslInput" title="Kopyala">📋</button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Tool 3: Base64 to Image -->
-                    <div class="panel-card tool-card full-width-tool">
-                        <div class="panel-header">
-                            <div class="panel-badge">Araç 3</div>
-                            <h3 class="panel-title">Görsel ⇄ Base64 Dönüştürücü</h3>
-                            <p class="panel-desc">Herhangi bir görseli Data URI / Base64 metnine çevirin veya Base64 kodundan görsel oluşturun.</p>
-                        </div>
-
-                        <div class="base64-converter-layout">
-                            <div class="base64-col">
-                                <textarea id="base64TextArea" class="form-textarea" placeholder="data:image/png;base64,... yapıştırın veya dosya yükleyin"></textarea>
-                                <div class="b64-buttons">
-                                    <button class="btn-secondary btn-sm" id="copyBase64Btn">Metni Kopyala</button>
-                                    <button class="btn-primary btn-sm" id="renderBase64Btn">Önizle & Çöz</button>
-                                </div>
-                            </div>
-                            <div class="base64-preview-col" id="base64PreviewCol">
-                                <div class="empty-state-preview">Önizleme burada görünecek</div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </section>
-        </main>
-
-        <!-- Modern Footer -->
-        <footer class="app-footer">
-            <div class="footer-container">
-                <div class="footer-info">
-                    <span class="footer-brand">⚡ OmniConvert Studio</span>
-                    <span class="footer-dot">•</span>
-                    <span class="footer-text">Hızlı, Güvenli ve Gizlilik Odaklı Medya Dönüştürücü</span>
-                </div>
-                <div class="footer-badges">
-                    <span class="tech-pill">Python 3.9 + Flask</span>
-                    <span class="tech-pill">yt-dlp Engine</span>
-                    <span class="tech-pill">Pillow Core</span>
-                    <span class="tech-pill">Client-Side Canvas & WebAudio</span>
-                </div>
-            </div>
-        </footer>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="i-download" viewBox="0 0 24 24"><path d="M12 3.5v11.5m0 0 4.5-4.5M12 15l-4.5-4.5M4.5 16.5v1.75A2.25 2.25 0 0 0 6.75 20.5h10.5a2.25 2.25 0 0 0 2.25-2.25V16.5"/></symbol>
+    <symbol id="i-image" viewBox="0 0 24 24"><rect x="3.5" y="4.5" width="17" height="15" rx="3"/><circle cx="9" cy="10" r="1.75"/><path d="m4 17.5 4.6-4.6a1.6 1.6 0 0 1 2.26 0L16 18m-2.5-2.5 1.65-1.65a1.6 1.6 0 0 1 2.26 0L20 16.4"/></symbol>
+    <symbol id="i-doc" viewBox="0 0 24 24"><path d="M14 3.5H8A2.5 2.5 0 0 0 5.5 6v12A2.5 2.5 0 0 0 8 20.5h8a2.5 2.5 0 0 0 2.5-2.5V8L14 3.5Z"/><path d="M14 3.5V8h4.5M9 12.5h6M9 16h4"/></symbol>
+    <symbol id="i-wave" viewBox="0 0 24 24"><path d="M3.5 12h1.5M7.5 8v8M10.5 5v14M13.5 9v6M16.5 6.5v11M19.5 10.5v3"/></symbol>
+    <symbol id="i-spark" viewBox="0 0 24 24"><path d="M12 3.5c.5 4.3 2.2 6 6.5 6.5-4.3.5-6 2.2-6.5 6.5-.5-4.3-2.2-6-6.5-6.5 4.3-.5 6-2.2 6.5-6.5Z"/><path d="M18.5 15.5c.2 1.7.8 2.3 2.5 2.5-1.7.2-2.3.8-2.5 2.5-.2-1.7-.8-2.3-2.5-2.5 1.7-.2 2.3-.8 2.5-2.5Z"/></symbol>
+    <symbol id="i-link" viewBox="0 0 24 24"><path d="M10 14a4 4 0 0 0 5.66 0l3-3a4 4 0 0 0-5.66-5.66l-1 1"/><path d="M14 10a4 4 0 0 0-5.66 0l-3 3a4 4 0 0 0 5.66 5.66l1-1"/></symbol>
+    <symbol id="i-ig" viewBox="0 0 24 24"><rect x="3.5" y="3.5" width="17" height="17" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.2" cy="6.8" r=".6" fill="currentColor"/></symbol>
+    <symbol id="i-yt" viewBox="0 0 24 24"><rect x="2.5" y="5.5" width="19" height="13" rx="4"/><path d="m10.25 9.25 4.5 2.75-4.5 2.75z" fill="currentColor"/></symbol>
+    <symbol id="i-tt" viewBox="0 0 24 24"><path d="M13.5 3.5v11.25a3.25 3.25 0 1 1-3.25-3.25"/><path d="M13.5 3.5c.4 2.6 2.1 4.3 5 4.6"/></symbol>
+    <symbol id="i-close" viewBox="0 0 24 24"><path d="m6.5 6.5 11 11m0-11-11 11"/></symbol>
+    <symbol id="i-paste" viewBox="0 0 24 24"><path d="M9 4.5h6M9 4.5a1.5 1.5 0 0 0 0 3h6a1.5 1.5 0 0 0 0-3M9 4.5H7.5a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h9a2 2 0 0 0 2-2v-12a2 2 0 0 0-2-2H15"/><path d="M9 12.5h6M9 16h4"/></symbol>
+    <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M5 12h14m0 0-5.5-5.5M19 12l-5.5 5.5"/></symbol>
+    <symbol id="i-play" viewBox="0 0 24 24"><path d="M8 5.5v13l10.5-6.5z"/></symbol>
+    <symbol id="i-zip" viewBox="0 0 24 24"><path d="M6.5 3.5h11a2 2 0 0 1 2 2v13a2 2 0 0 1-2 2h-11a2 2 0 0 1-2-2v-13a2 2 0 0 1 2-2Z"/><path d="M12 3.5v2m0 2v2m0 2v2"/><rect x="10.5" y="13.5" width="3" height="3.5" rx="1"/></symbol>
+    <symbol id="i-trash" viewBox="0 0 24 24"><path d="M4.5 7h15M10 4h4M6.5 7l.8 11.2A2 2 0 0 0 9.3 20h5.4a2 2 0 0 0 2-1.8L17.5 7"/></symbol>
+    <symbol id="i-upload" viewBox="0 0 24 24"><path d="M12 15.5V4m0 0L7.5 8.5M12 4l4.5 4.5M4.5 15v3.25a2.25 2.25 0 0 0 2.25 2.25h10.5a2.25 2.25 0 0 0 2.25-2.25V15"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5"/></symbol>
+    <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 11v5.5M12 7.75v.01"/></symbol>
+    <symbol id="i-alert" viewBox="0 0 24 24"><path d="M10.3 4.6 3.2 17a2 2 0 0 0 1.7 3h14.2a2 2 0 0 0 1.7-3L13.7 4.6a2 2 0 0 0-3.4 0Z"/><path d="M12 9.5v4M12 16.75v.01"/></symbol>
+    <symbol id="i-copy" viewBox="0 0 24 24"><rect x="8.5" y="8.5" width="12" height="12" rx="2.5"/><path d="M15.5 8.5V6a2.5 2.5 0 0 0-2.5-2.5H6A2.5 2.5 0 0 0 3.5 6v7A2.5 2.5 0 0 0 6 15.5h2.5"/></symbol>
+    <symbol id="i-qr" viewBox="0 0 24 24"><rect x="3.5" y="3.5" width="6.5" height="6.5" rx="1.5"/><rect x="14" y="3.5" width="6.5" height="6.5" rx="1.5"/><rect x="3.5" y="14" width="6.5" height="6.5" rx="1.5"/><path d="M14 14h2.5v2.5H14zM18 18h2.5v2.5H18zM14 18.5v2M18.5 14h2"/></symbol>
+    <symbol id="i-palette" viewBox="0 0 24 24"><path d="M12 3.5a8.5 8.5 0 1 0 0 17c1.1 0 1.75-.8 1.75-1.7 0-.45-.2-.85-.45-1.15-.25-.3-.45-.7-.45-1.15 0-.95.75-1.7 1.7-1.7h2a4.5 4.5 0 0 0 4.4-4.5C20.95 6.8 16.9 3.5 12 3.5Z"/><circle cx="7.75" cy="11.5" r="1"/><circle cx="10.5" cy="7.5" r="1"/><circle cx="15" cy="7.75" r="1"/></symbol>
+    <symbol id="i-code" viewBox="0 0 24 24"><path d="m8.5 7.5-5 4.5 5 4.5M15.5 7.5l5 4.5-5 4.5M13.5 5l-3 14"/></symbol>
+    <symbol id="i-merge" viewBox="0 0 24 24"><rect x="3.5" y="3.5" width="9" height="11" rx="2"/><rect x="11.5" y="9.5" width="9" height="11" rx="2"/></symbol>
+    <symbol id="i-text" viewBox="0 0 24 24"><path d="M5 6.5V5h14v1.5M12 5v14m-3 0h6"/></symbol>
+    <symbol id="i-external" viewBox="0 0 24 24"><path d="M14 4.5h5.5V10M19.5 4.5 11 13M17.5 14v4a2 2 0 0 1-2 2h-9a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2h4"/></symbol>
+    <symbol id="i-star" viewBox="0 0 24 24"><path d="m12 4 2.47 5 5.53.8-4 3.9.94 5.5L12 16.6l-4.94 2.6.94-5.5-4-3.9 5.53-.8z" fill="currentColor" stroke="none"/></symbol>
+    <symbol id="i-film" viewBox="0 0 24 24"><rect x="3.5" y="4.5" width="17" height="15" rx="3"/><path d="M7.5 4.5v15M16.5 4.5v15M3.5 9.5h4M3.5 14.5h4M16.5 9.5h4M16.5 14.5h4"/></symbol>
+    <symbol id="i-music" viewBox="0 0 24 24"><path d="M9 17.5V6l10-2v11.5"/><circle cx="6.75" cy="17.5" r="2.25"/><circle cx="16.75" cy="15.5" r="2.25"/></symbol>
+    <symbol id="i-pages" viewBox="0 0 24 24"><rect x="6.5" y="3.5" width="12" height="15" rx="2"/><path d="M4.5 7v11.5a2 2 0 0 0 2 2H15"/></symbol>
+  </defs>
+</svg>
+
+<div class="ambient" aria-hidden="true">
+  <div class="ambient__glow ambient__glow--a"></div>
+  <div class="ambient__glow ambient__glow--b"></div>
+  <div class="ambient__grid"></div>
+  <div class="ambient__grain"></div>
+</div>
+
+<div class="shell">
+  <!-- ======================= KENAR ÇUBUĞU ======================= -->
+  <aside class="rail">
+    <a class="brand" href="/" aria-label="OmniConvert Studio">
+      <span class="brand__mark" aria-hidden="true">
+        <svg viewBox="0 0 40 40"><circle cx="20" cy="20" r="11" class="brand__ring"/><circle cx="20" cy="20" r="16.5" class="brand__orbit"/><circle cx="31.7" cy="8.3" r="3" class="brand__moon"/></svg>
+      </span>
+      <span class="brand__type">
+        <span class="brand__name">OmniConvert</span>
+        <span class="brand__sub">Studio <em>— yerel</em></span>
+      </span>
+    </a>
+
+    <nav class="nav" role="tablist" aria-label="Araçlar">
+      <button class="tab-btn active" role="tab" data-tab="downloader" aria-selected="true">
+        <span class="tab-btn__num">01</span>
+        <svg class="ico"><use href="#i-download"/></svg>
+        <span class="tab-btn__txt"><b>Reels &amp; Video</b><small>İndirici</small></span>
+      </button>
+      <button class="tab-btn" role="tab" data-tab="image" aria-selected="false">
+        <span class="tab-btn__num">02</span>
+        <svg class="ico"><use href="#i-image"/></svg>
+        <span class="tab-btn__txt"><b>Görsel</b><small>Dönüştürücü</small></span>
+      </button>
+      <button class="tab-btn" role="tab" data-tab="pdf" aria-selected="false">
+        <span class="tab-btn__num">03</span>
+        <svg class="ico"><use href="#i-doc"/></svg>
+        <span class="tab-btn__txt"><b>Belge &amp; PDF</b><small>Stüdyosu</small></span>
+      </button>
+      <button class="tab-btn" role="tab" data-tab="audio" aria-selected="false">
+        <span class="tab-btn__num">04</span>
+        <svg class="ico"><use href="#i-wave"/></svg>
+        <span class="tab-btn__txt"><b>Videodan Ses</b><small>WAV ayıklama</small></span>
+      </button>
+      <button class="tab-btn" role="tab" data-tab="tools" aria-selected="false">
+        <span class="tab-btn__num">05</span>
+        <svg class="ico"><use href="#i-spark"/></svg>
+        <span class="tab-btn__txt"><b>Hızlı Araçlar</b><small>QR · Renk · Base64</small></span>
+      </button>
+    </nav>
+
+    <div class="rail__foot">
+      <div class="status" id="statusBadge">
+        <span class="status-dot online"></span>
+        <span id="statusText">Bağlanıyor…</span>
+      </div>
+      <p class="rail__note">Dosyalar bu cihazda işlenir.<br>Sunucu yalnız indirme ve Pillow içindir.</p>
     </div>
+  </aside>
 
-    <!-- Toast Notification Container -->
-    <div class="toast-container" id="toastContainer"></div>
+  <!-- ======================= ANA ALAN ======================= -->
+  <main class="stage">
+    <header class="topbar">
+      <div class="crumb"><span class="crumb__studio">Studio</span><span class="crumb__sep">/</span><span id="crumbName">Reels &amp; Video İndirici</span></div>
+      <button class="btn btn--ghost btn--sm" id="pasteLinkBtn" type="button">
+        <svg class="ico"><use href="#i-paste"/></svg><span>Bağlantı Yapıştır</span>
+      </button>
+    </header>
 
-    <!-- Application Scripts -->
-    <script src="/static/js/app.js"></script>
-    <script src="/static/js/mediaDownloader.js"></script>
-    <script src="/static/js/imageConverter.js"></script>
-    <script src="/static/js/pdfConverter.js"></script>
-    <script src="/static/js/audioExtractor.js"></script>
-    <script src="/static/js/quickTools.js"></script>
+    <!-- ======================= 01 İNDİRİCİ ======================= -->
+    <section class="tab-pane active" id="tab-downloader" role="tabpanel" data-title="Reels &amp; Video İndirici">
+      <div class="hero">
+        <span class="hero__num" aria-hidden="true">01</span>
+        <div>
+          <p class="eyebrow">Medya · Instagram · YouTube · TikTok · X · Pinterest</p>
+          <h1 class="hero__title">Reels &amp; <em>Video</em> İndirici</h1>
+          <p class="hero__lede">Bağlantıyı bırak; kapak, süre ve indirilebilir akışlar tek panelde dizilsin.</p>
+        </div>
+      </div>
+
+      <div class="card card--command">
+        <div class="command">
+          <span class="command__platform" id="platformIcon" data-platform="link"><svg class="ico"><use href="#i-link"/></svg></span>
+          <input id="urlInput" class="command__input" type="url" inputmode="url" autocomplete="off" spellcheck="false" placeholder="https://www.instagram.com/reel/…  ya da  youtu.be/…">
+          <button id="clearUrlBtn" class="command__clear" type="button" aria-label="Temizle" hidden><svg class="ico"><use href="#i-close"/></svg></button>
+          <label class="command__quality">
+            <span class="visually-hidden">Hedef kalite</span>
+            <select id="qualityPref">
+              <option value="auto">Otomatik (En Yüksek)</option>
+              <option value="1080p">1080p Full HD</option>
+              <option value="720p">720p HD</option>
+              <option value="480p">480p SD</option>
+              <option value="360p">360p Hızlı</option>
+              <option value="audio">Sadece Ses (MP3)</option>
+            </select>
+          </label>
+          <button id="fetchBtn" class="btn btn--accent command__go" type="button">
+            <span class="btn__label">İçeriği Getir</span><svg class="ico"><use href="#i-arrow"/></svg>
+          </button>
+        </div>
+        <div class="examples">
+          <span class="examples__label">Örnek dene</span>
+          <button class="chip example-btn" type="button" data-url="https://www.instagram.com/reel/DYhxnMit3uL/"><svg class="ico"><use href="#i-ig"/></svg>Instagram Reel</button>
+          <button class="chip example-btn" type="button" data-url="https://www.youtube.com/watch?v=dQw4w9WgXcQ"><svg class="ico"><use href="#i-yt"/></svg>YouTube Video</button>
+          <span class="examples__hint"><kbd>Enter</kbd> ile getir</span>
+        </div>
+      </div>
+
+      <div class="card result-skeleton" id="fetchSkeleton" hidden>
+        <div class="sk sk--cover"></div>
+        <div class="sk-col"><div class="sk sk--line w40"></div><div class="sk sk--title"></div><div class="sk sk--line w60"></div><div class="sk sk--row"></div><div class="sk sk--row"></div><div class="sk sk--row"></div></div>
+      </div>
+
+      <div class="card result" id="resultPanel" hidden>
+        <div class="result__media">
+          <figure class="cover" id="coverFrame">
+            <img id="resultThumb" alt="" referrerpolicy="no-referrer">
+            <div class="cover__tags">
+              <span class="tag tag--solid" id="resultPlatform">—</span>
+              <span class="tag" id="resultDuration" hidden>0:00</span>
+            </div>
+            <div class="player" id="playerBox" hidden></div>
+          </figure>
+          <button class="btn btn--ghost btn--block" id="playerToggle" type="button"><svg class="ico"><use href="#i-play"/></svg><span>Canlı Oynatıcıyı Aç</span></button>
+        </div>
+
+        <div class="result__body">
+          <p class="eyebrow" id="resultAuthor">Kanal / Yayıncı</p>
+          <h2 class="result__title" id="resultTitle">—</h2>
+
+          <div class="seg" id="qualityFilters" role="tablist" aria-label="Kalite filtresi">
+            <button class="seg__btn filter-btn active" data-filter="all" type="button">Tümü</button>
+            <button class="seg__btn filter-btn" data-filter="1080p" type="button">1080p</button>
+            <button class="seg__btn filter-btn" data-filter="720p" type="button">720p</button>
+            <button class="seg__btn filter-btn" data-filter="sd" type="button">480p–360p</button>
+            <button class="seg__btn filter-btn" data-filter="audio" type="button">MP3</button>
+          </div>
+
+          <div class="formats" id="formatList"></div>
+
+          <div class="mirrors">
+            <p class="mirrors__title"><svg class="ico"><use href="#i-external"/></svg>Ayna bağlantılar <span>Doğrudan akış yoksa bu servisler yeni sekmede açılır.</span></p>
+            <div class="mirrors__list" id="mirrorList"></div>
+          </div>
+        </div>
+      </div>
+
+      <ol class="flow" aria-label="Nasıl çalışır">
+        <li><span class="flow__n">i.</span><b>Bağlantıyı bırak</b><p>Instagram, YouTube, TikTok, X, Pinterest ya da herhangi bir medya sayfası. Platform simgesi yazarken tanınır.</p></li>
+        <li><span class="flow__n">ii.</span><b>Kaliteyi seç</b><p>Hedef kalite sonuç listesini önceden süzer; eşleşen akış <em>Tercihiniz</em> olarak işaretlenir.</p></li>
+        <li><span class="flow__n">iii.</span><b>Doğrudan indir</b><p>Dosya yerel sunucu üzerinden akıtılır, belleğe alınmaz. Akış yoksa ayna servisler hazır bekler.</p></li>
+      </ol>
+    </section>
+
+    <!-- ======================= 02 GÖRSEL ======================= -->
+    <section class="tab-pane" id="tab-image" role="tabpanel" data-title="Görsel Dönüştürücü">
+      <div class="hero">
+        <span class="hero__num" aria-hidden="true">02</span>
+        <div>
+          <p class="eyebrow">JPG · PNG · WEBP · BMP · ICO</p>
+          <h1 class="hero__title">Görsel <em>Dönüştürücü</em></h1>
+          <p class="hero__lede">Toplu dönüştür, sıkıştır, ölçekle. Tarayıcıda başlar; gerekirse yerel Pillow motoruna geçer.</p>
+        </div>
+      </div>
+
+      <div class="grid grid--image">
+        <div class="stack">
+          <label class="drop" id="imgDrop" tabindex="0">
+            <input id="imgInput" type="file" accept="image/*,.svg" multiple hidden>
+            <svg class="drop__frame" aria-hidden="true"><rect x="1" y="1" rx="22" ry="22"/></svg>
+            <span class="drop__icon"><svg class="ico"><use href="#i-upload"/></svg></span>
+            <span class="drop__title">Görselleri buraya bırak</span>
+            <span class="drop__hint">ya da tıkla, seç · panodan <kbd>Ctrl</kbd> <kbd>V</kbd> ile yapıştır</span>
+          </label>
+
+          <div class="card settings">
+            <p class="card__label">Dönüştürme ayarları</p>
+            <div class="field">
+              <span class="field__label">Hedef format</span>
+              <div class="seg seg--fill" id="imgFormatSeg">
+                <button type="button" class="seg__btn active" data-value="JPEG">JPG</button>
+                <button type="button" class="seg__btn" data-value="PNG">PNG</button>
+                <button type="button" class="seg__btn" data-value="WEBP">WEBP</button>
+                <button type="button" class="seg__btn" data-value="BMP">BMP</button>
+                <button type="button" class="seg__btn" data-value="ICO">ICO</button>
+              </div>
+              <input type="hidden" id="imgFormat" value="JPEG">
+            </div>
+            <div class="field">
+              <span class="field__label">Kalite <output id="imgQualityVal">%92</output></span>
+              <input id="imgQuality" class="range" type="range" min="10" max="100" value="92">
+            </div>
+            <div class="field-row">
+              <label class="field">
+                <span class="field__label">Ölçek</span>
+                <select id="imgScale" class="select">
+                  <option value="1">Orijinal (1×)</option>
+                  <option value="0.75">%75</option>
+                  <option value="0.5">%50</option>
+                  <option value="0.25">%25</option>
+                  <option value="2">2× büyüt</option>
+                </select>
+              </label>
+              <div class="field" id="bgColorWrap">
+                <span class="field__label">Arka plan</span>
+                <label class="swatch-input">
+                  <input id="imgBg" type="color" value="#ffffff">
+                  <span id="imgBgHex">#FFFFFF</span>
+                </label>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card queue-card">
+          <div class="queue-head">
+            <div>
+              <p class="card__label">Kuyruk</p>
+              <p class="queue-count"><span id="imgQueueCount">0</span> görsel <span class="savings" id="imgSavings" hidden></span></p>
+            </div>
+            <div class="queue-actions">
+              <button class="btn btn--ghost btn--sm" id="imgClear" type="button"><svg class="ico"><use href="#i-trash"/></svg><span>Tümünü Temizle</span></button>
+              <button class="btn btn--ghost btn--sm" id="imgZipBtn" type="button" hidden><svg class="ico"><use href="#i-zip"/></svg><span>Tümünü İndir (ZIP)</span></button>
+              <button class="btn btn--accent btn--sm" id="imgConvertAll" type="button"><span class="btn__label">Tümünü Dönüştür</span><svg class="ico"><use href="#i-arrow"/></svg></button>
+            </div>
+          </div>
+          <div class="queue" id="imgQueue"></div>
+          <div class="empty" id="imgEmpty">
+            <div class="empty__art" aria-hidden="true"><span></span><span></span><span></span></div>
+            <p>Kuyruk boş. Görseller burada kart olarak dizilir.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ======================= 03 PDF ======================= -->
+    <section class="tab-pane" id="tab-pdf" role="tabpanel" data-title="Belge &amp; PDF Stüdyosu">
+      <div class="hero">
+        <span class="hero__num" aria-hidden="true">03</span>
+        <div>
+          <p class="eyebrow">DOCX · TXT · MD · Görsel · Not · Birleştirme</p>
+          <h1 class="hero__title">Belge &amp; <em>PDF</em> Stüdyosu</h1>
+          <p class="hero__lede">Word, metin, görsel ve notlardan düzgün dizilmiş PDF'ler. Üretim tamamen tarayıcıda.</p>
+        </div>
+      </div>
+
+      <div class="modes" role="tablist" aria-label="PDF modu">
+        <button class="mode-btn active" data-mode="doc" type="button"><svg class="ico"><use href="#i-doc"/></svg><span><b>Word &amp; Metin</b><small>DOCX, TXT, MD → PDF</small></span></button>
+        <button class="mode-btn" data-mode="images" type="button"><svg class="ico"><use href="#i-image"/></svg><span><b>Görsellerden</b><small>Her görsel bir sayfa</small></span></button>
+        <button class="mode-btn" data-mode="text" type="button"><svg class="ico"><use href="#i-text"/></svg><span><b>Hızlı Not</b><small>Şablonla yaz</small></span></button>
+        <button class="mode-btn" data-mode="merge" type="button"><svg class="ico"><use href="#i-merge"/></svg><span><b>Birleştirici</b><small>Karışık dosyalar</small></span></button>
+      </div>
+      <p class="fine-print"><svg class="ico"><use href="#i-info"/></svg>PDF standart yazı tipleri <b>ğ ş ı İ</b> glifi içermez; bu harfler <b>g s i I</b> olarak basılır.</p>
+
+      <!-- Mod 1 -->
+      <div class="pdf-mode active" id="mode-doc">
+        <div class="grid grid--pdf">
+          <div class="stack">
+            <label class="drop drop--compact" id="docDrop" tabindex="0">
+              <input id="docInput" type="file" accept=".docx,.doc,.txt,.md,.markdown,.rtf,.csv,.json,.html" hidden>
+              <svg class="drop__frame" aria-hidden="true"><rect x="1" y="1" rx="22" ry="22"/></svg>
+              <span class="drop__icon"><svg class="ico"><use href="#i-doc"/></svg></span>
+              <span class="drop__title">Belgeyi bırak</span>
+              <span class="drop__hint">DOCX · DOC · TXT · MD · RTF · CSV · JSON · HTML</span>
+            </label>
+            <div class="card settings">
+              <p class="card__label">PDF ayarları</p>
+              <div class="field-row">
+                <label class="field"><span class="field__label">Yazı tipi</span>
+                  <select id="docFont" class="select"><option value="helvetica">Helvetica</option><option value="times">Times</option><option value="courier">Courier</option></select></label>
+                <label class="field"><span class="field__label">Yazı boyutu</span>
+                  <select id="docSize" class="select"><option value="10">10 pt</option><option value="11" selected>11 pt</option><option value="12">12 pt</option><option value="14">14 pt</option></select></label>
+              </div>
+              <div class="field-row">
+                <label class="field"><span class="field__label">Sayfa</span>
+                  <select id="docPage" class="select"><option value="a4-p">A4 Dikey</option><option value="a4-l">A4 Yatay</option><option value="letter-p">Letter Dikey</option><option value="letter-l">Letter Yatay</option></select></label>
+                <label class="field"><span class="field__label">Kenar boşluğu</span>
+                  <select id="docMargin" class="select"><option value="10">10 mm</option><option value="15" selected>15 mm</option><option value="25">25 mm</option></select></label>
+              </div>
+              <div class="field-row">
+                <label class="field"><span class="field__label">Sayfa numarası</span>
+                  <select id="docPageNum" class="select"><option value="yes">Ekle</option><option value="no">Ekleme</option></select></label>
+                <label class="field"><span class="field__label">Üst başlık</span>
+                  <select id="docHeader" class="select"><option value="yes">Başlık + tarih</option><option value="no">Sade</option></select></label>
+              </div>
+              <label class="field"><span class="field__label">Çıktı adı</span>
+                <input id="docName" class="input" type="text" placeholder="belge.pdf"></label>
+              <button class="btn btn--accent btn--block" id="docGenerate" type="button"><span class="btn__label">PDF Oluştur ve İndir</span><svg class="ico"><use href="#i-download"/></svg></button>
+            </div>
+          </div>
+
+          <div class="desk">
+            <div class="desk__bar">
+              <span class="file-badge" id="docBadge">Belge yok</span>
+              <span class="desk__meta" id="docMeta"></span>
+              <span class="desk__meta" id="docCount"></span>
+            </div>
+            <article class="paper" id="docPreview">
+              <div class="paper__empty">
+                <span class="paper__glyph">¶</span>
+                <p>Yüklenen belge burada<br>sayfa olarak önizlenir.</p>
+              </div>
+            </article>
+          </div>
+        </div>
+      </div>
+
+      <!-- Mod 2 -->
+      <div class="pdf-mode" id="mode-images">
+        <div class="grid grid--pdf">
+          <div class="stack">
+            <label class="drop drop--compact" id="pimgDrop" tabindex="0">
+              <input id="pimgInput" type="file" accept="image/*" multiple hidden>
+              <svg class="drop__frame" aria-hidden="true"><rect x="1" y="1" rx="22" ry="22"/></svg>
+              <span class="drop__icon"><svg class="ico"><use href="#i-image"/></svg></span>
+              <span class="drop__title">Görselleri bırak</span>
+              <span class="drop__hint">JPG · PNG · WEBP · SVG — yükleme sırası sayfa sırasıdır</span>
+            </label>
+            <div class="card settings">
+              <p class="card__label">Sayfa düzeni</p>
+              <div class="field-row">
+                <label class="field"><span class="field__label">Sayfa boyutu</span>
+                  <select id="pimgPage" class="select"><option value="a4">A4</option><option value="letter">Letter</option><option value="fit">Görselin orijinal boyutu</option></select></label>
+                <label class="field"><span class="field__label">Yönlendirme</span>
+                  <select id="pimgOrient" class="select"><option value="p">Dikey</option><option value="l">Yatay</option></select></label>
+              </div>
+              <div class="field-row">
+                <label class="field"><span class="field__label">Kenar boşluğu</span>
+                  <select id="pimgMargin" class="select"><option value="0">0 mm</option><option value="10" selected>10 mm</option><option value="20">20 mm</option></select></label>
+                <label class="field"><span class="field__label">Dosya adı</span>
+                  <input id="pimgName" class="input" type="text" value="gorseller_belgesi.pdf"></label>
+              </div>
+            </div>
+          </div>
+          <div class="desk">
+            <div class="desk__bar">
+              <span class="file-badge" id="pimgBadge">0 sayfa</span>
+              <div class="desk__actions" id="pimgActions" hidden>
+                <button class="btn btn--ghost btn--sm" id="pimgClear" type="button"><svg class="ico"><use href="#i-trash"/></svg><span>Listeyi Temizle</span></button>
+                <button class="btn btn--accent btn--sm" id="pimgGenerate" type="button"><span class="btn__label">PDF Oluştur</span><svg class="ico"><use href="#i-download"/></svg></button>
+              </div>
+            </div>
+            <div class="pages" id="pimgList">
+              <div class="empty"><div class="empty__art" aria-hidden="true"><span></span><span></span><span></span></div><p>Sayfalar burada sırayla dizilir.</p></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Mod 3 -->
+      <div class="pdf-mode" id="mode-text">
+        <div class="grid grid--pdf">
+          <div class="stack">
+            <div class="card settings">
+              <p class="card__label">Hazır şablonlar</p>
+              <div class="templates">
+                <button class="tpl-btn" data-tpl="blank" type="button"><b>Boş Belge</b><small>Sıfırdan yaz</small></button>
+                <button class="tpl-btn" data-tpl="petition" type="button"><b>Resmi Dilekçe</b><small>Kurum · konu · imza</small></button>
+                <button class="tpl-btn" data-tpl="minutes" type="button"><b>Toplantı Tutanağı</b><small>Gündem · kararlar</small></button>
+                <button class="tpl-btn" data-tpl="code" type="button"><b>Kod / Not Dökümü</b><small>Kod bloğu · durum</small></button>
+              </div>
+              <label class="field"><span class="field__label">Belge başlığı</span>
+                <input id="txtTitle" class="input" type="text" value="Resmi Yazışma Belgesi"></label>
+              <label class="field"><span class="field__label">Hazırlayan / Kurum</span>
+                <input id="txtAuthor" class="input" type="text" value="OmniConvert Kullanıcısı"></label>
+            </div>
+          </div>
+          <div class="desk">
+            <div class="desk__bar">
+              <span class="file-badge"><span id="txtWords">0</span>&nbsp;kelime</span>
+              <div class="desk__actions">
+                <button class="btn btn--ghost btn--sm" id="txtClear" type="button"><svg class="ico"><use href="#i-trash"/></svg><span>Metni Temizle</span></button>
+                <button class="btn btn--accent btn--sm" id="txtGenerate" type="button"><span class="btn__label">PDF Oluştur</span><svg class="ico"><use href="#i-download"/></svg></button>
+              </div>
+            </div>
+            <div class="paper paper--write">
+              <textarea id="txtBody" spellcheck="false" placeholder="Yazmaya başla… # ile başlayan satırlar başlık olur."></textarea>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Mod 4 -->
+      <div class="pdf-mode" id="mode-merge">
+        <div class="grid grid--pdf">
+          <div class="stack">
+            <label class="drop drop--compact" id="mergeDrop" tabindex="0">
+              <input id="mergeInput" type="file" accept=".docx,.doc,.txt,.md,.rtf,image/*" multiple hidden>
+              <svg class="drop__frame" aria-hidden="true"><rect x="1" y="1" rx="22" ry="22"/></svg>
+              <span class="drop__icon"><svg class="ico"><use href="#i-merge"/></svg></span>
+              <span class="drop__title">Karışık dosyaları bırak</span>
+              <span class="drop__hint">DOCX · DOC · TXT · MD · RTF · görseller</span>
+            </label>
+            <div class="card settings">
+              <p class="card__label">Çıktı</p>
+              <p class="muted">A4 dikey, 15 mm kenar. Her dosya kendi sayfasından başlar; görseller oranı korunarak ortalanır.</p>
+              <button class="btn btn--accent btn--block" id="mergeGenerate" type="button"><span class="btn__label">Birleştir ve İndir</span><svg class="ico"><use href="#i-download"/></svg></button>
+            </div>
+          </div>
+          <div class="desk">
+            <div class="desk__bar"><span class="file-badge" id="mergeBadge">0 dosya</span><span class="desk__meta">birlestirilmis_belge.pdf</span></div>
+            <ol class="merge-list" id="mergeList"></ol>
+            <div class="empty" id="mergeEmpty"><div class="empty__art" aria-hidden="true"><span></span><span></span><span></span></div><p>Dosyalar sırayla tek PDF'te birleşir.</p></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ======================= 04 SES ======================= -->
+    <section class="tab-pane" id="tab-audio" role="tabpanel" data-title="Videodan Ses Çıkarma">
+      <div class="hero">
+        <span class="hero__num" aria-hidden="true">04</span>
+        <div>
+          <p class="eyebrow">MP4 · WebM · MOV · MKV · AVI → WAV</p>
+          <h1 class="hero__title">Videodan <em>Ses</em> Çıkarma</h1>
+          <p class="hero__lede">Ses kanalını kayıpsız WAV olarak ayıkla. Video bu cihazdan hiç çıkmaz.</p>
+        </div>
+      </div>
+
+      <div class="grid grid--audio">
+        <label class="drop" id="audDrop" tabindex="0">
+          <input id="audInput" type="file" accept="video/*" hidden>
+          <svg class="drop__frame" aria-hidden="true"><rect x="1" y="1" rx="22" ry="22"/></svg>
+          <span class="drop__icon"><svg class="ico"><use href="#i-film"/></svg></span>
+          <span class="drop__title">Videoyu buraya bırak</span>
+          <span class="drop__hint">ya da tıkla, seç · işlem tamamen tarayıcıda</span>
+        </label>
+
+        <div class="card deck">
+          <div class="deck__head">
+            <div>
+              <p class="card__label">Ses masası</p>
+              <p class="deck__info" id="audInfo">Henüz video seçilmedi.</p>
+            </div>
+            <ol class="steps" id="audSteps">
+              <li data-step="1">Çöz</li><li data-step="2">PCM</li><li data-step="3">WAV</li>
+            </ol>
+          </div>
+          <div class="wave">
+            <canvas id="audWave" aria-hidden="true"></canvas>
+            <div class="wave__idle" id="audIdle"><svg class="ico"><use href="#i-music"/></svg></div>
+          </div>
+          <p class="deck__status" id="audStatus" data-tone="idle">Bekleniyor</p>
+          <div class="deck__controls">
+            <audio id="audPlayer" controls hidden></audio>
+            <button class="btn btn--accent" id="audDownload" type="button" disabled><span class="btn__label">Kayıpsız WAV Olarak İndir</span><svg class="ico"><use href="#i-download"/></svg></button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ======================= 05 ARAÇLAR ======================= -->
+    <section class="tab-pane" id="tab-tools" role="tabpanel" data-title="Hızlı Araçlar">
+      <div class="hero">
+        <span class="hero__num" aria-hidden="true">05</span>
+        <div>
+          <p class="eyebrow">Küçük ama sık lazım olanlar</p>
+          <h1 class="hero__title">Hızlı <em>Araçlar</em></h1>
+          <p class="hero__lede">QR kod, renk kodları ve Base64 görsel çözücü.</p>
+        </div>
+      </div>
+
+      <div class="grid grid--tools">
+        <div class="card tool">
+          <div class="tool__head"><span class="tool__ico"><svg class="ico"><use href="#i-qr"/></svg></span><div><h3>QR Kod Üretici</h3><p>Her tuşta yeniden çizilir · hata düzeltme H</p></div></div>
+          <div class="qr-stage"><div class="qr-frame"><div id="qrBox"></div></div></div>
+          <label class="field"><span class="field__label">Metin veya bağlantı</span>
+            <input id="qrText" class="input" type="text" value="https://instagram.com"></label>
+          <div class="tool__actions">
+            <button class="btn btn--ghost btn--sm" id="qrPng" type="button"><svg class="ico"><use href="#i-download"/></svg><span>PNG İndir</span></button>
+            <button class="btn btn--ghost btn--sm" id="qrJpg" type="button"><svg class="ico"><use href="#i-download"/></svg><span>JPG İndir</span></button>
+          </div>
+        </div>
+
+        <div class="card tool">
+          <div class="tool__head"><span class="tool__ico"><svg class="ico"><use href="#i-palette"/></svg></span><div><h3>Renk Kodu Dönüştürücü</h3><p>HEX → RGB → HSL</p></div></div>
+          <button class="color-band" id="colorBand" type="button" aria-label="Renk seç"><span id="colorBandHex">#FF5A36</span></button>
+          <input type="color" id="colorPicker" value="#ff5a36" class="visually-hidden" tabindex="-1">
+          <div class="codes">
+            <label class="code"><span>HEX</span><input id="hexIn" class="input input--mono" value="#FF5A36" spellcheck="false"><button class="copy-btn" data-target="hexIn" type="button" aria-label="HEX kopyala"><svg class="ico"><use href="#i-copy"/></svg></button></label>
+            <label class="code"><span>RGB</span><input id="rgbIn" class="input input--mono" value="rgb(255, 90, 54)" readonly><button class="copy-btn" data-target="rgbIn" type="button" aria-label="RGB kopyala"><svg class="ico"><use href="#i-copy"/></svg></button></label>
+            <label class="code"><span>HSL</span><input id="hslIn" class="input input--mono" value="hsl(11, 100%, 61%)" readonly><button class="copy-btn" data-target="hslIn" type="button" aria-label="HSL kopyala"><svg class="ico"><use href="#i-copy"/></svg></button></label>
+          </div>
+        </div>
+
+        <div class="card tool">
+          <div class="tool__head"><span class="tool__ico"><svg class="ico"><use href="#i-code"/></svg></span><div><h3>Base64 Görsel Çözücü</h3><p>Data URI veya ham Base64 → görsel</p></div></div>
+          <textarea id="b64Text" class="input input--mono b64" spellcheck="false" placeholder="data:image/png;base64,iVBORw0KGgo…"></textarea>
+          <div class="tool__actions">
+            <button class="btn btn--ghost btn--sm" id="b64Copy" type="button"><svg class="ico"><use href="#i-copy"/></svg><span>Metni Kopyala</span></button>
+            <button class="btn btn--accent btn--sm" id="b64Decode" type="button"><span class="btn__label">Önizle &amp; Çöz</span><svg class="ico"><use href="#i-arrow"/></svg></button>
+          </div>
+          <div class="b64-preview" id="b64Preview"><span class="b64-preview__empty">Önizleme burada görünür</span></div>
+        </div>
+      </div>
+    </section>
+
+    <footer class="colophon">
+      <span>OmniConvert Studio</span>
+      <span>Yerel · Çevrimdışı öncelikli · 100 MB yükleme sınırı</span>
+    </footer>
+  </main>
+</div>
+
+<div class="toasts" id="toastContainer" aria-live="polite"></div>
+
+<script src="{{ url_for('static', filename='libs/jszip.min.js') }}"></script>
+<script src="{{ url_for('static', filename='libs/jspdf.umd.min.js') }}"></script>
+<script src="{{ url_for('static', filename='libs/qrcode.min.js') }}"></script>
+<script src="{{ url_for('static', filename='js/app.js') }}"></script>
+<script src="{{ url_for('static', filename='js/mediaDownloader.js') }}"></script>
+<script src="{{ url_for('static', filename='js/imageConverter.js') }}"></script>
+<script src="{{ url_for('static', filename='js/pdfConverter.js') }}"></script>
+<script src="{{ url_for('static', filename='js/audioExtractor.js') }}"></script>
+<script src="{{ url_for('static', filename='js/quickTools.js') }}"></script>
 </body>
 </html>

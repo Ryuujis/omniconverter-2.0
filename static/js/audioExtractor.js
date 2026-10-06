@@ -1,196 +1,169 @@
-/**
- * OmniConvert Studio - Video to Audio Extractor
- * Uses Web Audio API to decode video soundtracks into WAV audio directly in the browser
- */
+/* Sekme 4 — Videodan Ses Çıkarma (tamamen tarayıcıda) */
+(function () {
+  'use strict';
 
-document.addEventListener('DOMContentLoaded', () => {
-    const audioDropzone = document.getElementById('audioDropzone');
-    const videoInput = document.getElementById('videoForAudioInput');
-    const resultCard = document.getElementById('audioResultCard');
-    const fileNameEl = document.getElementById('audioFileName');
-    const durationEl = document.getElementById('audioTrackDuration');
-    const progressEl = document.getElementById('extractionProgressText');
-    const audioPlayer = document.getElementById('extractedAudioPlayer');
-    const downloadWavBtn = document.getElementById('downloadWavBtn');
+  const $ = (id) => document.getElementById(id);
+  const info = $('audInfo');
+  const status = $('audStatus');
+  const player = $('audPlayer');
+  const downloadBtn = $('audDownload');
+  const canvas = $('audWave');
+  const idle = $('audIdle');
+  const steps = document.querySelectorAll('#audSteps li');
 
-    let extractedAudioBlob = null;
-    let extractedAudioName = 'audio_track.wav';
+  let wavBlob = null;
+  let wavName = 'audio.wav';
+  let objectUrl = null;
 
-    // Dropzone Events
-    audioDropzone.addEventListener('click', () => videoInput.click());
+  function setStatus(text, tone) {
+    status.textContent = text;
+    status.dataset.tone = tone;
+  }
 
-    ['dragenter', 'dragover'].forEach(name => {
-        audioDropzone.addEventListener(name, (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            audioDropzone.classList.add('drag-over');
-        });
+  function setStep(n) {
+    steps.forEach((li) => {
+      const s = Number(li.dataset.step);
+      li.classList.toggle('is-done', s < n);
+      li.classList.toggle('is-active', s === n);
     });
+  }
 
-    ['dragleave', 'drop'].forEach(name => {
-        audioDropzone.addEventListener(name, (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            audioDropzone.classList.remove('drag-over');
-        });
+  const nextFrame = () => new Promise((r) => requestAnimationFrame(() => setTimeout(r, 30)));
+
+  function fmtDuration(sec) {
+    const s = Math.round(sec);
+    return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
+  }
+
+  function encodeWav(buffer) {
+    const channels = buffer.numberOfChannels;
+    const rate = buffer.sampleRate;
+    const frames = buffer.length;
+    const dataSize = frames * channels * 2;
+    const view = new DataView(new ArrayBuffer(44 + dataSize));
+    const writeStr = (o, s) => { for (let i = 0; i < s.length; i++) view.setUint8(o + i, s.charCodeAt(i)); };
+
+    writeStr(0, 'RIFF');
+    view.setUint32(4, 36 + dataSize, true);
+    writeStr(8, 'WAVE');
+    writeStr(12, 'fmt ');
+    view.setUint32(16, 16, true);
+    view.setUint16(20, 1, true);
+    view.setUint16(22, channels, true);
+    view.setUint32(24, rate, true);
+    view.setUint32(28, rate * channels * 2, true);
+    view.setUint16(32, channels * 2, true);
+    view.setUint16(34, 16, true);
+    writeStr(36, 'data');
+    view.setUint32(40, dataSize, true);
+
+    const data = [];
+    for (let c = 0; c < channels; c++) data.push(buffer.getChannelData(c));
+    let offset = 44;
+    for (let i = 0; i < frames; i++) {
+      for (let c = 0; c < channels; c++) {
+        const s = Math.max(-1, Math.min(1, data[c][i]));
+        view.setInt16(offset, s < 0 ? s * 0x8000 : s * 0x7fff, true);
+        offset += 2;
+      }
+    }
+    return new Blob([view], { type: 'audio/wav' });
+  }
+
+  function drawWave(buffer) {
+    const dpr = window.devicePixelRatio || 1;
+    const w = canvas.clientWidth;
+    const h = canvas.clientHeight;
+    canvas.width = w * dpr;
+    canvas.height = h * dpr;
+    const ctx = canvas.getContext('2d');
+    ctx.scale(dpr, dpr);
+    ctx.clearRect(0, 0, w, h);
+    const data = buffer.getChannelData(0);
+    const bars = Math.max(40, Math.floor(w / 4));
+    const step = Math.floor(data.length / bars) || 1;
+    const grad = ctx.createLinearGradient(0, 0, w, 0);
+    grad.addColorStop(0, '#ff7b55');
+    grad.addColorStop(1, '#ff3d6e');
+    const mid = h / 2;
+    const peaks = [];
+    let max = 0.0001;
+    for (let b = 0; b < bars; b++) {
+      let peak = 0;
+      const start = b * step;
+      for (let i = start; i < start + step && i < data.length; i += 16) peak = Math.max(peak, Math.abs(data[i]));
+      peaks.push(peak);
+      max = Math.max(max, peak);
+    }
+    const bw = w / bars;
+    peaks.forEach((p, b) => {
+      const bh = Math.max(2, (p / max) * (h * 0.82));
+      ctx.fillStyle = grad;
+      ctx.globalAlpha = 0.35 + 0.65 * (p / max);
+      ctx.beginPath();
+      if (ctx.roundRect) ctx.roundRect(b * bw + 1, mid - bh / 2, Math.max(1.5, bw - 2), bh, 2);
+      else ctx.rect(b * bw + 1, mid - bh / 2, Math.max(1.5, bw - 2), bh);
+      ctx.fill();
     });
+    ctx.globalAlpha = 1;
+    idle.hidden = true;
+  }
 
-    audioDropzone.addEventListener('drop', (e) => {
-        const file = Array.from(e.dataTransfer.files).find(f => f.type.startsWith('video/'));
-        if (file) processVideoFile(file);
-        else window.showToast('Lütfen geçerli bir video dosyası (MP4, WebM, MOV) bırakın.', 'error');
-    });
+  function reset() {
+    wavBlob = null;
+    downloadBtn.disabled = true;
+    player.hidden = true;
+    player.removeAttribute('src');
+    if (objectUrl) URL.revokeObjectURL(objectUrl);
+    objectUrl = null;
+    idle.hidden = false;
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+  }
 
-    videoInput.addEventListener('change', () => {
-        if (videoInput.files.length > 0) {
-            processVideoFile(videoInput.files[0]);
-            videoInput.value = '';
-        }
-    });
-
-    async function processVideoFile(file) {
-        resultCard.style.display = 'block';
-        fileNameEl.textContent = file.name;
-        durationEl.textContent = `Boyut: ${window.formatBytes(file.size)}`;
-        progressEl.textContent = 'Video yükleniyor ve ses kanalı çözülüyor...';
-        progressEl.style.color = '#38bdf8';
-        audioPlayer.src = '';
-        downloadWavBtn.disabled = true;
-
-        const baseName = file.name.replace(/\.[^/.]+$/, '');
-        extractedAudioName = `${baseName}_audio.wav`;
-
-        try {
-            const arrayBuffer = await file.arrayBuffer();
-            const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-
-            progressEl.textContent = 'Ses akışı ayrıştırılıyor (PCM Decode)...';
-
-            const audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
-            
-            const dur = Math.round(audioBuffer.duration);
-            const mins = Math.floor(dur / 60);
-            const secs = dur % 60;
-            durationEl.textContent = `Süre: ${mins}:${secs.toString().padStart(2, '0')} • ${audioBuffer.numberOfChannels} Kanal • ${audioBuffer.sampleRate} Hz`;
-
-            progressEl.textContent = 'WAV formatına kodlanıyor...';
-
-            // Convert AudioBuffer to WAV Blob
-            const wavBlob = audioBufferToWav(audioBuffer);
-            extractedAudioBlob = wavBlob;
-
-            const audioUrl = URL.createObjectURL(wavBlob);
-            audioPlayer.src = audioUrl;
-
-            progressEl.textContent = `Hazır! (${window.formatBytes(wavBlob.size)})`;
-            progressEl.style.color = '#34d399';
-            downloadWavBtn.disabled = false;
-
-            window.showToast('Ses başarıyla ayrıştırıldı!', 'success');
-        } catch (err) {
-            console.error('Audio extraction error:', err);
-            progressEl.textContent = 'Hata: Videoda ses kanalı bulunamadı veya biçim desteklenmiyor.';
-            progressEl.style.color = '#f87171';
-            window.showToast('Videodan ses ayrıştırılamadı.', 'error');
-        }
+  async function handleFiles(files) {
+    const file = files[0];
+    if (!file) return;
+    if (!file.type.startsWith('video/') && !/\.(mp4|webm|mov|mkv|avi|m4v)$/i.test(file.name)) {
+      showToast('Lütfen bir video dosyası seçin.', 'error');
+      return;
     }
-
-    downloadWavBtn.addEventListener('click', () => {
-        if (!extractedAudioBlob) return;
-        const url = URL.createObjectURL(extractedAudioBlob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = extractedAudioName;
-        document.body.appendChild(a);
-        a.click();
-        setTimeout(() => {
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-        }, 100);
-    });
-
-    // Helper: Encode standard 16-bit PCM WAV from AudioBuffer
-    function audioBufferToWav(buffer) {
-        const numChannels = buffer.numberOfChannels;
-        const sampleRate = buffer.sampleRate;
-        const format = 1; // PCM
-        const bitDepth = 16;
-
-        let interleaved;
-        if (numChannels === 2) {
-            const left = buffer.getChannelData(0);
-            const right = buffer.getChannelData(1);
-            interleaved = interleave(left, right);
-        } else {
-            interleaved = buffer.getChannelData(0);
-        }
-
-        return encodeWAV(interleaved, numChannels, sampleRate, bitDepth);
+    reset();
+    wavName = `${file.name.replace(/\.[^.]+$/, '') || 'video'}_audio.wav`;
+    info.textContent = `${file.name} · ${formatBytes(file.size)}`;
+    setStep(1);
+    setStatus('Video yükleniyor ve ses kanalı çözülüyor…', 'info');
+    const Ctx = window.AudioContext || window.webkitAudioContext;
+    let ctx;
+    try {
+      await nextFrame();
+      const arrayBuffer = await file.arrayBuffer();
+      ctx = new Ctx();
+      setStep(2);
+      setStatus('Ses akışı ayrıştırılıyor (PCM Decode)…', 'info');
+      const buffer = await ctx.decodeAudioData(arrayBuffer);
+      info.textContent = `${file.name} · ${fmtDuration(buffer.duration)} · ${buffer.numberOfChannels} kanal · ${buffer.sampleRate.toLocaleString('tr-TR')} Hz`;
+      drawWave(buffer);
+      setStep(3);
+      setStatus('WAV formatına kodlanıyor…', 'info');
+      await nextFrame();
+      wavBlob = encodeWav(buffer);
+      objectUrl = URL.createObjectURL(wavBlob);
+      player.src = objectUrl;
+      player.hidden = false;
+      downloadBtn.disabled = false;
+      setStep(4);
+      setStatus(`Hazır! (${formatBytes(wavBlob.size)})`, 'ok');
+      showToast('Ses kanalı WAV olarak hazır.', 'success');
+    } catch (err) {
+      setStep(0);
+      setStatus('Hata: Videoda ses kanalı bulunamadı veya biçim desteklenmiyor.', 'bad');
+      showToast('Ses çıkarılamadı.', 'error');
+    } finally {
+      if (ctx && ctx.close) ctx.close();
     }
+  }
 
-    function interleave(inputL, inputR) {
-        const length = inputL.length + inputR.length;
-        const result = new Float32Array(length);
-        let index = 0;
-        let inputIndex = 0;
-
-        while (index < length) {
-            result[index++] = inputL[inputIndex];
-            result[index++] = inputR[inputIndex];
-            inputIndex++;
-        }
-        return result;
-    }
-
-    function encodeWAV(samples, numChannels, sampleRate, bitDepth) {
-        const bytesPerSample = bitDepth / 8;
-        const blockAlign = numChannels * bytesPerSample;
-        const buffer = new ArrayBuffer(44 + samples.length * bytesPerSample);
-        const view = new DataView(buffer);
-
-        /* RIFF identifier */
-        writeString(view, 0, 'RIFF');
-        /* RIFF chunk length */
-        view.setUint32(4, 36 + samples.length * bytesPerSample, true);
-        /* RIFF type */
-        writeString(view, 8, 'WAVE');
-        /* format chunk identifier */
-        writeString(view, 12, 'fmt ');
-        /* format chunk length */
-        view.setUint32(16, 16, true);
-        /* sample format (raw) */
-        view.setUint16(20, 1, true);
-        /* channel count */
-        view.setUint16(22, numChannels, true);
-        /* sample rate */
-        view.setUint32(24, sampleRate, true);
-        /* byte rate (sample rate * block align) */
-        view.setUint32(28, sampleRate * blockAlign, true);
-        /* block align (channel count * bytes per sample) */
-        view.setUint16(32, blockAlign, true);
-        /* bits per sample */
-        view.setUint16(34, bitDepth, true);
-        /* data chunk identifier */
-        writeString(view, 36, 'data');
-        /* data chunk length */
-        view.setUint32(40, samples.length * bytesPerSample, true);
-
-        // float to 16-bit PCM
-        floatTo16BitPCM(view, 44, samples);
-
-        return new Blob([view], { type: 'audio/wav' });
-    }
-
-    function writeString(view, offset, string) {
-        for (let i = 0; i < string.length; i++) {
-            view.setUint8(offset + i, string.charCodeAt(i));
-        }
-    }
-
-    function floatTo16BitPCM(output, offset, input) {
-        for (let i = 0; i < input.length; i++, offset += 2) {
-            const s = Math.max(-1, Math.min(1, input[i]));
-            output.setInt16(offset, s < 0 ? s * 0x8000 : s * 0x7FFF, true);
-        }
-    }
-});
+  bindDropZone($('audDrop'), $('audInput'), handleFiles);
+  downloadBtn.addEventListener('click', () => { if (wavBlob) downloadBlob(wavBlob, wavName); });
+})();

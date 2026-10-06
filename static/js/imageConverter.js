@@ -1,421 +1,266 @@
-/**
- * OmniConvert Studio - Image Converter Engine
- * PNG to JPG, WEBP, SVG, BMP, ICO with Quality & Scale Controls + Batch ZIP
- */
+/* Sekme 2 — Görsel Dönüştürücü */
+(function () {
+  'use strict';
 
-document.addEventListener('DOMContentLoaded', () => {
-    const dropzone = document.getElementById('imageDropzone');
-    const fileInput = document.getElementById('imageFileInput');
-    const targetFormatSelect = document.getElementById('targetFormatSelect');
-    const qualitySlider = document.getElementById('imageQualitySlider');
-    const qualityValue = document.getElementById('qualityValue');
-    const scaleSelect = document.getElementById('scaleSelect');
-    const bgColorPicker = document.getElementById('bgColorPicker');
-    const bgColorHex = document.getElementById('bgColorHex');
-    const bgColorControlGroup = document.getElementById('bgColorControlGroup');
+  const $ = (id) => document.getElementById(id);
+  const drop = $('imgDrop');
+  const fileInput = $('imgInput');
+  const formatInput = $('imgFormat');
+  const formatSeg = $('imgFormatSeg');
+  const quality = $('imgQuality');
+  const qualityVal = $('imgQualityVal');
+  const scale = $('imgScale');
+  const bgWrap = $('bgColorWrap');
+  const bg = $('imgBg');
+  const bgHex = $('imgBgHex');
+  const queueEl = $('imgQueue');
+  const emptyEl = $('imgEmpty');
+  const convertAllBtn = $('imgConvertAll');
+  const zipBtn = $('imgZipBtn');
+  const clearBtn = $('imgClear');
+  const savingsEl = $('imgSavings');
+  const countEl = $('imgQueueCount');
 
-    const actionsBar = document.getElementById('converterActionsBar');
-    const filesCountBadge = document.getElementById('filesCountBadge');
-    const totalSavingsBadge = document.getElementById('totalSavingsBadge');
-    const convertAllBtn = document.getElementById('convertAllBtn');
-    const downloadAllZipBtn = document.getElementById('downloadAllZipBtn');
-    const clearAllBtn = document.getElementById('clearAllImagesBtn');
-    const queueList = document.getElementById('imageQueueList');
+  const MIME = { JPEG: 'image/jpeg', PNG: 'image/png', WEBP: 'image/webp', BMP: 'image/bmp', ICO: 'image/x-icon' };
+  const CANVAS_FORMATS = ['JPEG', 'PNG', 'WEBP'];
+  const queue = [];
+  const shown = new Set(); // giriş animasyonu yalnız ilk çizimde oynar
+  let seq = 0;
 
-    // State
-    let fileQueue = []; // array of { id, file, name, size, type, convertedBlob, convertedSize, status, thumbUrl }
+  const ext = (fmt) => (fmt === 'JPEG' ? 'jpg' : fmt.toLowerCase());
+  const baseName = (name) => name.replace(/\.[^.]+$/, '') || 'image';
+  const isSvg = (file) => file.type === 'image/svg+xml' || /\.svg$/i.test(file.name);
 
-    // Quality slider update
-    qualitySlider.addEventListener('input', () => {
-        qualityValue.textContent = `${qualitySlider.value}%`;
-    });
+  function syncControls() {
+    const fmt = formatInput.value;
+    bgWrap.hidden = !(fmt === 'JPEG' || fmt === 'BMP');
+    qualityVal.textContent = `%${quality.value}`;
+    quality.style.setProperty('--p', `${((quality.value - 10) / 90) * 100}%`);
+    bgHex.textContent = bg.value.toUpperCase();
+  }
 
-    // Color picker label update
-    bgColorPicker.addEventListener('input', () => {
-        bgColorHex.textContent = bgColorPicker.value.toUpperCase();
-    });
+  formatSeg.addEventListener('click', (e) => {
+    const btn = e.target.closest('.seg__btn');
+    if (!btn) return;
+    formatSeg.querySelectorAll('.seg__btn').forEach((b) => b.classList.toggle('active', b === btn));
+    formatInput.value = btn.dataset.value;
+    syncControls();
+  });
+  quality.addEventListener('input', syncControls);
+  bg.addEventListener('input', syncControls);
 
-    // Show/hide background color based on target format
-    targetFormatSelect.addEventListener('change', () => {
-        const fmt = targetFormatSelect.value;
-        if (fmt === 'jpeg' || fmt === 'bmp') {
-            bgColorControlGroup.style.display = 'flex';
-        } else {
-            bgColorControlGroup.style.display = 'none';
-        }
-    });
-
-    // Dropzone Events
-    dropzone.addEventListener('click', () => fileInput.click());
-
-    ['dragenter', 'dragover'].forEach(name => {
-        dropzone.addEventListener(name, (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            dropzone.classList.add('drag-over');
-        });
-    });
-
-    ['dragleave', 'drop'].forEach(name => {
-        dropzone.addEventListener(name, (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            dropzone.classList.remove('drag-over');
-        });
-    });
-
-    dropzone.addEventListener('drop', (e) => {
-        const files = Array.from(e.dataTransfer.files).filter(f => f.type.startsWith('image/') || f.name.endsWith('.svg'));
-        if (files.length > 0) {
-            handleImageFiles(files);
-        }
-    });
-
-    fileInput.addEventListener('change', () => {
-        const files = Array.from(fileInput.files);
-        if (files.length > 0) {
-            handleImageFiles(files);
-            fileInput.value = '';
-        }
-    });
-
-    // Global file handler (also called from clipboard paste)
-    window.handleImageFiles = function(files) {
-        files.forEach(file => {
-            const id = 'img_' + Math.random().toString(36).substr(2, 9);
-            const thumbUrl = URL.createObjectURL(file);
-
-            fileQueue.push({
-                id,
-                file,
-                name: file.name || 'clipboard_image.png',
-                size: file.size,
-                type: file.type,
-                convertedBlob: null,
-                convertedSize: 0,
-                status: 'waiting',
-                thumbUrl
-            });
-        });
-
-        renderQueue();
-        window.showToast(`${files.length} görsel listeye eklendi.`, 'info');
-    };
-
-    // Render Queue
-    function renderQueue() {
-        queueList.innerHTML = '';
-        const count = fileQueue.length;
-
-        if (count === 0) {
-            actionsBar.style.display = 'none';
-            return;
-        }
-
-        actionsBar.style.display = 'flex';
-        filesCountBadge.textContent = `${count} Görsel Seçildi`;
-
-        // Check if any are converted
-        const convertedCount = fileQueue.filter(f => f.status === 'done').length;
-        if (convertedCount > 0) {
-            downloadAllZipBtn.style.display = 'inline-flex';
-            
-            // Calculate total savings
-            let origSum = 0;
-            let convSum = 0;
-            fileQueue.forEach(item => {
-                if (item.status === 'done') {
-                    origSum += item.size;
-                    convSum += item.convertedSize;
-                }
-            });
-
-            if (origSum > 0 && convSum > 0) {
-                const diff = origSum - convSum;
-                const pct = Math.round((diff / origSum) * 100);
-                if (pct > 0) {
-                    totalSavingsBadge.textContent = `Toplam Tasarruf: -%${pct} (${window.formatBytes(diff)})`;
-                    totalSavingsBadge.style.display = 'inline-block';
-                } else {
-                    totalSavingsBadge.style.display = 'none';
-                }
-            }
-        } else {
-            downloadAllZipBtn.style.display = 'none';
-            totalSavingsBadge.style.display = 'none';
-        }
-
-        fileQueue.forEach(item => {
-            const card = document.createElement('div');
-            card.className = 'queue-item-card';
-            card.id = `card_${item.id}`;
-
-            let statusHtml = '<span class="queue-status-tag status-waiting">Bekliyor</span>';
-            if (item.status === 'converting') {
-                statusHtml = '<span class="queue-status-tag status-converting">Dönüştürülüyor...</span>';
-            } else if (item.status === 'done') {
-                const diffPct = Math.round(((item.size - item.convertedSize) / item.size) * 100);
-                const badgeColor = diffPct >= 0 ? '#10b981' : '#f59e0b';
-                const sign = diffPct >= 0 ? '-' : '+';
-                statusHtml = `
-                    <span class="queue-status-tag status-done">Hazır (${window.formatBytes(item.convertedSize)})</span>
-                    <span style="font-size: 0.72rem; color: ${badgeColor}; font-weight: 700;">${sign}%${Math.abs(diffPct)}</span>
-                `;
-            }
-
-            card.innerHTML = `
-                <div class="queue-file-info">
-                    <img src="${item.thumbUrl}" alt="Önizleme" class="queue-thumb">
-                    <div class="queue-meta">
-                        <div class="queue-name" title="${item.name}">${item.name}</div>
-                        <div class="queue-subtext">
-                            <span>${window.formatBytes(item.size)}</span>
-                            <span>•</span>
-                            ${statusHtml}
-                        </div>
-                    </div>
-                </div>
-
-                <div class="queue-actions">
-                    ${item.status === 'done' ? `
-                        <button class="btn-success btn-sm download-single-btn" data-id="${item.id}" title="İndir">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                                <polyline points="7 10 12 15 17 10"></polyline>
-                                <line x1="12" y1="15" x2="12" y2="3"></line>
-                            </svg>
-                            <span>İndir</span>
-                        </button>
-                    ` : `
-                        <button class="btn-primary btn-sm convert-single-btn" data-id="${item.id}">Dönüştür</button>
-                    `}
-                    <button class="btn-secondary btn-sm remove-single-btn" data-id="${item.id}" title="Kaldır">✕</button>
-                </div>
-            `;
-
-            queueList.appendChild(card);
-        });
-
-        // Attach action handlers
-        document.querySelectorAll('.convert-single-btn').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                const id = e.currentTarget.getAttribute('data-id');
-                const target = fileQueue.find(f => f.id === id);
-                if (target) convertSingleFile(target);
-            });
-        });
-
-        document.querySelectorAll('.download-single-btn').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                const id = e.currentTarget.getAttribute('data-id');
-                const target = fileQueue.find(f => f.id === id);
-                if (target && target.convertedBlob) {
-                    downloadBlob(target.convertedBlob, target.outputName);
-                }
-            });
-        });
-
-        document.querySelectorAll('.remove-single-btn').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                const id = e.currentTarget.getAttribute('data-id');
-                fileQueue = fileQueue.filter(f => f.id !== id);
-                renderQueue();
-            });
-        });
+  window.handleImageFiles = function (files, silent) {
+    const accepted = files.filter((f) => f.type.startsWith('image/') || /\.svg$/i.test(f.name));
+    if (!accepted.length) {
+      showToast('Yalnızca görsel dosyaları eklenebilir.', 'error');
+      return;
     }
+    accepted.forEach((file) => {
+      queue.push({
+        id: ++seq,
+        file,
+        name: file.name || 'clipboard_image.png',
+        size: file.size,
+        type: file.type || (isSvg(file) ? 'image/svg+xml' : 'image/*'),
+        thumbUrl: URL.createObjectURL(file),
+        status: 'pending',
+        output: null,
+        outName: '',
+      });
+    });
+    render();
+    if (!silent) showToast(`${accepted.length} görsel listeye eklendi.`, 'success');
+  };
 
-    // Helper: Trigger blob download in browser
-    function downloadBlob(blob, filename) {
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = filename;
-        document.body.appendChild(a);
-        a.click();
-        setTimeout(() => {
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-        }, 100);
+  bindDropZone(drop, fileInput, (files) => window.handleImageFiles(files));
+
+  function loadImage(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onerror = () => reject(new Error('Dosya okunamadı'));
+      reader.onload = () => {
+        const img = new Image();
+        img.onload = () => resolve(img);
+        img.onerror = () => reject(new Error('Görsel çözülemedi'));
+        img.src = reader.result;
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+
+  async function drawToCanvas(file, factor, fill) {
+    const img = await loadImage(file);
+    const w = Math.max(1, Math.round((img.naturalWidth || img.width || 512) * factor));
+    const h = Math.max(1, Math.round((img.naturalHeight || img.height || 512) * factor));
+    const canvas = document.createElement('canvas');
+    canvas.width = w;
+    canvas.height = h;
+    const ctx = canvas.getContext('2d');
+    if (fill) {
+      ctx.fillStyle = fill;
+      ctx.fillRect(0, 0, w, h);
     }
+    ctx.imageSmoothingQuality = 'high';
+    ctx.drawImage(img, 0, 0, w, h);
+    return canvas;
+  }
 
-    // Single File Conversion (Client-side Canvas + Server-side Pillow Fallback)
-    async function convertSingleFile(item) {
-        item.status = 'converting';
-        renderQueue();
+  const toBlob = (canvas, mime, q) => new Promise((resolve, reject) => {
+    canvas.toBlob((b) => (b && b.type === mime ? resolve(b) : reject(new Error('Canvas bu formatı üretemedi'))), mime, q);
+  });
 
-        const targetFmt = targetFormatSelect.value; // jpeg, png, webp, bmp, ico
-        const quality = parseInt(qualitySlider.value, 10) / 100;
-        const scale = parseFloat(scaleSelect.value);
-        const bgColor = bgColorPicker.value;
+  async function convertInBrowser(item, fmt) {
+    const canvas = await drawToCanvas(item.file, Number(scale.value), fmt === 'JPEG' ? bg.value : null);
+    return toBlob(canvas, MIME[fmt], Number(quality.value) / 100);
+  }
 
-        const baseName = item.name.replace(/\.[^/.]+$/, '');
-        const ext = targetFmt === 'jpeg' ? 'jpg' : targetFmt;
-        item.outputName = `${baseName}_converted.${ext}`;
+  async function convertOnServer(item, fmt) {
+    let source = item.file;
+    if (isSvg(item.file)) {
+      // Pillow SVG okuyamaz: önce tarayıcıda PNG'ye rasterleştir, ölçeği sunucuya bırak.
+      const canvas = await drawToCanvas(item.file, 1, null);
+      source = new File([await toBlob(canvas, 'image/png')], `${baseName(item.name)}.png`, { type: 'image/png' });
+    }
+    const form = new FormData();
+    form.append('file', source, source.name || item.name);
+    form.append('target_format', fmt);
+    form.append('quality', quality.value);
+    form.append('scale', scale.value);
+    form.append('bg_color', bg.value);
+    const res = await fetch('/api/convert-image', { method: 'POST', body: form });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error || `Sunucu hatası (${res.status})`);
+    }
+    return res.blob();
+  }
 
+  async function convertItem(item) {
+    const fmt = formatInput.value;
+    item.status = 'busy';
+    render();
+    try {
+      let blob;
+      if (CANVAS_FORMATS.includes(fmt)) {
         try {
-            // Attempt 1: Fast in-browser Canvas 2D
-            if (['jpeg', 'png', 'webp'].includes(targetFmt)) {
-                const blob = await convertViaCanvas(item.file, targetFmt, quality, scale, bgColor);
-                item.convertedBlob = blob;
-                item.convertedSize = blob.size;
-                item.status = 'done';
-            } else {
-                // For BMP, ICO or other formats -> send to server Pillow endpoint
-                const blob = await convertViaServer(item.file, targetFmt, qualitySlider.value, scale, bgColor);
-                item.convertedBlob = blob;
-                item.convertedSize = blob.size;
-                item.status = 'done';
-            }
-        } catch (err) {
-            console.warn('Canvas conversion failed, falling back to server Pillow:', err);
-            try {
-                const blob = await convertViaServer(item.file, targetFmt, qualitySlider.value, scale, bgColor);
-                item.convertedBlob = blob;
-                item.convertedSize = blob.size;
-                item.status = 'done';
-            } catch (serverErr) {
-                console.error('All conversion methods failed:', serverErr);
-                item.status = 'waiting';
-                window.showToast(`${item.name} dönüştürülürken hata oluştu.`, 'error');
-            }
+          blob = await convertInBrowser(item, fmt);
+        } catch (e) {
+          blob = await convertOnServer(item, fmt);
         }
-
-        renderQueue();
+      } else {
+        blob = await convertOnServer(item, fmt);
+      }
+      item.output = blob;
+      item.outName = `${baseName(item.name)}_converted.${ext(fmt)}`;
+      item.status = 'done';
+    } catch (err) {
+      item.status = 'pending';
+      showToast(`${item.name}: ${err.message || 'dönüştürülemedi'}`, 'error');
     }
+    render();
+    return item.status === 'done';
+  }
 
-    // In-Browser HTML5 Canvas Converter (High performance & 100% offline)
-    function convertViaCanvas(file, targetFmt, quality, scale, bgColor) {
-        return new Promise((resolve, reject) => {
-            const img = new Image();
-            const reader = new FileReader();
+  function render() {
+    countEl.textContent = queue.length;
+    emptyEl.hidden = queue.length > 0;
+    zipBtn.hidden = !queue.some((q) => q.status === 'done');
 
-            reader.onload = (e) => {
-                img.onload = () => {
-                    try {
-                        const targetW = Math.max(1, Math.round(img.width * scale));
-                        const targetH = Math.max(1, Math.round(img.height * scale));
+    const done = queue.filter((q) => q.status === 'done');
+    const before = done.reduce((s, q) => s + q.size, 0);
+    const after = done.reduce((s, q) => s + q.output.size, 0);
+    const pct = before ? Math.round(((before - after) / before) * 100) : 0;
+    savingsEl.hidden = !(pct > 0);
+    savingsEl.textContent = `Toplam -%${pct} tasarruf`;
 
-                        const canvas = document.createElement('canvas');
-                        canvas.width = targetW;
-                        canvas.height = targetH;
-                        const ctx = canvas.getContext('2d');
+    queueEl.innerHTML = '';
+    queue.forEach((item, i) => {
+      const card = document.createElement('article');
+      card.className = 'qcard';
+      if (shown.has(item.id)) card.style.animation = 'none';
+      else card.style.animationDelay = `${Math.min(i, 12) * 30}ms`;
+      shown.add(item.id);
+      let stateHtml = '<span class="state">Bekliyor</span>';
+      let delta = '';
+      let action = `<button class="btn btn--ghost qcard__btn" data-act="convert" type="button">Dönüştür</button>`;
+      if (item.status === 'busy') {
+        stateHtml = '<span class="state state--busy">Dönüştürülüyor...</span>';
+        action = '';
+      } else if (item.status === 'done') {
+        stateHtml = `<span class="state state--done">Hazır (${formatBytes(item.output.size)})</span>`;
+        const d = Math.round(((item.output.size - item.size) / item.size) * 100);
+        delta = d <= 0
+          ? `<span class="delta delta--save">-%${Math.abs(d)}</span>`
+          : `<span class="delta delta--grow">+%${d}</span>`;
+        action = `<button class="btn btn--accent qcard__btn" data-act="download" type="button"><svg class="ico"><use href="#i-download"/></svg>İndir</button>`;
+      }
+      card.innerHTML =
+        `<div class="qcard__thumb${item.status === 'busy' ? ' is-busy' : ''}"><img src="${item.thumbUrl}" alt="" loading="lazy">` +
+        `<button class="qcard__remove" data-act="remove" type="button" aria-label="Kaldır"><svg class="ico"><use href="#i-close"/></svg></button></div>` +
+        `<div class="qcard__body"><span class="qcard__name" title="${escapeHtml(item.name)}">${escapeHtml(item.name)}</span>` +
+        `<span class="qcard__meta">${formatBytes(item.size)} · ${escapeHtml(item.type)}</span>` +
+        `<div class="qcard__row">${stateHtml}${delta}</div>` +
+        `<div class="qcard__row">${action}</div></div>`;
+      card.addEventListener('click', (e) => {
+        const btn = e.target.closest('[data-act]');
+        if (!btn) return;
+        if (btn.dataset.act === 'convert') convertItem(item);
+        if (btn.dataset.act === 'download') downloadBlob(item.output, item.outName);
+        if (btn.dataset.act === 'remove') {
+          URL.revokeObjectURL(item.thumbUrl);
+          queue.splice(queue.indexOf(item), 1);
+          render();
+        }
+      });
+      queueEl.appendChild(card);
+    });
+  }
 
-                        // Fill background if JPEG
-                        if (targetFmt === 'jpeg') {
-                            ctx.fillStyle = bgColor || '#FFFFFF';
-                            ctx.fillRect(0, 0, targetW, targetH);
-                        }
-
-                        ctx.drawImage(img, 0, 0, targetW, targetH);
-
-                        const mime = `image/${targetFmt}`;
-                        canvas.toBlob((blob) => {
-                            if (blob) resolve(blob);
-                            else reject(new Error('Canvas toBlob returned null'));
-                        }, mime, quality);
-                    } catch (err) {
-                        reject(err);
-                    }
-                };
-                img.onerror = reject;
-                img.src = e.target.result;
-            };
-            reader.onerror = reject;
-            reader.readAsDataURL(file);
-        });
+  convertAllBtn.addEventListener('click', async () => {
+    const pending = queue.filter((q) => q.status === 'pending');
+    if (!pending.length) {
+      showToast('Dönüştürülecek yeni görsel yok.', 'info');
+      return;
     }
-
-    // Server-side Pillow Converter Fallback
-    async function convertViaServer(file, targetFmt, quality, scale, bgColor) {
-        const formData = new FormData();
-        formData.append('file', file);
-        formData.append('target_format', targetFmt.toUpperCase());
-        formData.append('quality', quality);
-        formData.append('scale', scale);
-        formData.append('bg_color', bgColor);
-
-        const res = await fetch('/api/convert-image', {
-            method: 'POST',
-            body: formData
-        });
-
-        if (!res.ok) {
-            throw new Error(`Server returned status ${res.status}`);
-        }
-
-        return await res.blob();
+    setBusy(convertAllBtn, true);
+    let ok = 0;
+    for (const item of pending) {
+      if (queue.includes(item) && await convertItem(item)) ok++;
     }
+    setBusy(convertAllBtn, false);
+    if (ok === pending.length) showToast('Tüm görseller başarıyla dönüştürüldü!', 'success');
+    else if (ok) showToast(`${ok}/${pending.length} görsel dönüştürüldü.`, 'warning');
+  });
 
-    // Convert All Action
-    convertAllBtn.addEventListener('click', async () => {
-        const waitingItems = fileQueue.filter(f => f.status === 'waiting');
-        if (waitingItems.length === 0) {
-            window.showToast('Dönüştürülecek yeni görsel bulunamadı.', 'info');
-            return;
-        }
+  zipBtn.addEventListener('click', async () => {
+    if (typeof JSZip === 'undefined') {
+      showToast('ZIP kütüphanesi yüklenemedi.', 'info');
+      return;
+    }
+    const done = queue.filter((q) => q.status === 'done');
+    if (!done.length) return;
+    setBusy(zipBtn, true);
+    try {
+      const zip = new JSZip();
+      const used = new Set();
+      done.forEach((q) => {
+        let name = q.outName;
+        for (let n = 2; used.has(name); n++) name = q.outName.replace(/(\.[^.]+)$/, `_${n}$1`);
+        used.add(name);
+        zip.file(name, q.output);
+      });
+      downloadBlob(await zip.generateAsync({ type: 'blob' }), 'OmniConvert_Gorseller.zip');
+    } finally {
+      setBusy(zipBtn, false);
+    }
+  });
 
-        convertAllBtn.disabled = true;
-        convertAllBtn.innerHTML = `<span class="spinner"></span> <span>Dönüştürülüyor...</span>`;
+  clearBtn.addEventListener('click', () => {
+    queue.forEach((q) => URL.revokeObjectURL(q.thumbUrl));
+    queue.length = 0;
+    render();
+  });
 
-        for (let item of waitingItems) {
-            await convertSingleFile(item);
-        }
-
-        convertAllBtn.disabled = false;
-        convertAllBtn.innerHTML = `
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <polyline points="23 4 23 10 17 10"></polyline>
-                <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
-            </svg>
-            <span>Tümünü Dönüştür</span>
-        `;
-        window.showToast('Tüm görseller başarıyla dönüştürüldü!', 'success');
-    });
-
-    // Batch Download All as ZIP (using JSZip)
-    downloadAllZipBtn.addEventListener('click', async () => {
-        const doneItems = fileQueue.filter(f => f.status === 'done' && f.convertedBlob);
-        if (doneItems.length === 0) return;
-
-        if (typeof JSZip === 'undefined') {
-            window.showToast('JSZip kütüphanesi yükleniyor, lütfen bekleyin...', 'info');
-            return;
-        }
-
-        downloadAllZipBtn.disabled = true;
-        downloadAllZipBtn.innerHTML = `<span class="spinner"></span> <span>ZIP Paketleniyor...</span>`;
-
-        try {
-            const zip = new JSZip();
-            doneItems.forEach((item, index) => {
-                // Ensure unique filenames
-                const name = item.outputName || `image_${index + 1}.jpg`;
-                zip.file(name, item.convertedBlob);
-            });
-
-            const zipContent = await zip.generateAsync({ type: 'blob' });
-            downloadBlob(zipContent, 'OmniConvert_Gorseller.zip');
-            window.showToast('Tüm dönüştürülen görseller ZIP olarak indirildi!', 'success');
-        } catch (err) {
-            console.error('ZIP creation error:', err);
-            window.showToast('ZIP arşivi oluşturulurken hata meydana geldi.', 'error');
-        } finally {
-            downloadAllZipBtn.disabled = false;
-            downloadAllZipBtn.innerHTML = `
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                    <polyline points="7 10 12 15 17 10"></polyline>
-                    <line x1="12" y1="15" x2="12" y2="3"></line>
-                </svg>
-                <span>Tümünü İndir (ZIP)</span>
-            `;
-        }
-    });
-
-    // Clear All Action
-    clearAllBtn.addEventListener('click', () => {
-        fileQueue = [];
-        renderQueue();
-        window.showToast('Görsel listesi temizlendi.', 'info');
-    });
-});
+  syncControls();
+  render();
+})();

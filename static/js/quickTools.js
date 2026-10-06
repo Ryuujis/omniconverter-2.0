@@ -1,209 +1,168 @@
-/**
- * OmniConvert Studio - Quick Tools Module
- * QR Code Generator, Color Code Converter, Base64 Encoder/Decoder
- */
+/* Sekme 5 — Hızlı Araçlar: QR, renk kodu, Base64 çözücü */
+(function () {
+  'use strict';
 
-document.addEventListener('DOMContentLoaded', () => {
-    // ----------------------------------------------------
-    // Tool 1: QR Code Generator
-    // ----------------------------------------------------
-    const qrTextInput = document.getElementById('qrTextInput');
-    const qrCanvas = document.getElementById('qrcodeCanvas');
-    const downloadQrPngBtn = document.getElementById('downloadQrPngBtn');
-    const downloadQrJpgBtn = document.getElementById('downloadQrJpgBtn');
+  const $ = (id) => document.getElementById(id);
 
-    let qrCodeInstance = null;
+  // ---------------------------------------------------------------- QR
+  const qrText = $('qrText');
+  const qrBox = $('qrBox');
+  const QR_DEFAULT = 'https://instagram.com';
 
-    function renderQr() {
-        const text = qrTextInput.value.trim() || 'https://instagram.com';
-        qrCanvas.innerHTML = '';
-        if (typeof QRCode !== 'undefined') {
-            qrCodeInstance = new QRCode(qrCanvas, {
-                text: text,
-                width: 180,
-                height: 180,
-                colorDark: '#0f172a',
-                colorLight: '#ffffff',
-                correctLevel: QRCode.CorrectLevel.H
-            });
-        }
+  function drawQr() {
+    if (typeof QRCode === 'undefined') return;
+    qrBox.innerHTML = '';
+    new QRCode(qrBox, {
+      text: qrText.value.trim() || QR_DEFAULT,
+      width: 180,
+      height: 180,
+      colorDark: '#0f172a',
+      colorLight: '#ffffff',
+      correctLevel: QRCode.CorrectLevel.H,
+    });
+  }
+
+  function qrSource() {
+    const img = qrBox.querySelector('img');
+    const canvas = qrBox.querySelector('canvas');
+    if (img && img.src && img.src.startsWith('data:')) return { img };
+    if (canvas) return { canvas };
+    if (img && img.src) return { img };
+    return null;
+  }
+
+  function saveDataUrl(url, name) {
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = name;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+  }
+
+  $('qrPng').addEventListener('click', () => {
+    const src = qrSource();
+    if (!src) return;
+    saveDataUrl(src.img ? src.img.src : src.canvas.toDataURL('image/png'), 'qrcode.png');
+    showToast('QR kod PNG olarak indirildi.', 'success');
+  });
+
+  $('qrJpg').addEventListener('click', () => {
+    const src = qrSource();
+    if (!src) return;
+    const from = src.canvas || src.img;
+    const c = document.createElement('canvas');
+    c.width = from.width || 180;
+    c.height = from.height || 180;
+    const ctx = c.getContext('2d');
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, c.width, c.height);
+    ctx.drawImage(from, 0, 0, c.width, c.height);
+    saveDataUrl(c.toDataURL('image/jpeg', 0.95), 'qrcode.jpg');
+    showToast('QR kod JPG olarak indirildi.', 'success');
+  });
+
+  qrText.addEventListener('input', drawQr);
+  drawQr();
+
+  // ---------------------------------------------------------------- Renk
+  const band = $('colorBand');
+  const bandHex = $('colorBandHex');
+  const picker = $('colorPicker');
+  const hexIn = $('hexIn');
+  const rgbIn = $('rgbIn');
+  const hslIn = $('hslIn');
+
+  function hexToRgb(hex) {
+    const m = /^#([0-9a-f]{6})$/i.exec(hex);
+    if (!m) return null;
+    const n = parseInt(m[1], 16);
+    return { r: (n >> 16) & 255, g: (n >> 8) & 255, b: n & 255 };
+  }
+
+  function rgbToHsl({ r, g, b }) {
+    r /= 255; g /= 255; b /= 255;
+    const max = Math.max(r, g, b);
+    const min = Math.min(r, g, b);
+    const l = (max + min) / 2;
+    let h = 0;
+    let s = 0;
+    if (max !== min) {
+      const d = max - min;
+      s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+      if (max === r) h = (g - b) / d + (g < b ? 6 : 0);
+      else if (max === g) h = (b - r) / d + 2;
+      else h = (r - g) / d + 4;
+      h /= 6;
     }
+    return { h: Math.round(h * 360), s: Math.round(s * 100), l: Math.round(l * 100) };
+  }
 
-    qrTextInput.addEventListener('input', () => {
-        renderQr();
-    });
+  function applyColor(rawHex, fromInput) {
+    let hex = rawHex.trim();
+    if (hex && !hex.startsWith('#')) hex = `#${hex}`;
+    const rgb = hexToRgb(hex);
+    if (!rgb) return;
+    hex = hex.toUpperCase();
+    const hsl = rgbToHsl(rgb);
+    if (!fromInput || hexIn.value !== hex) hexIn.value = hex;
+    rgbIn.value = `rgb(${rgb.r}, ${rgb.g}, ${rgb.b})`;
+    hslIn.value = `hsl(${hsl.h}, ${hsl.s}%, ${hsl.l}%)`;
+    picker.value = hex.toLowerCase();
+    bandHex.textContent = hex;
+    const lum = (0.2126 * rgb.r + 0.7152 * rgb.g + 0.0722 * rgb.b) / 255;
+    band.style.setProperty('--c', hex);
+    band.style.setProperty('--on-c', lum > 0.55 ? '#111111' : '#f7f2ea');
+  }
 
-    renderQr();
+  band.addEventListener('click', () => (picker.showPicker ? picker.showPicker() : picker.click()));
+  picker.addEventListener('input', () => applyColor(picker.value, false));
+  hexIn.addEventListener('input', () => applyColor(hexIn.value, true));
 
-    downloadQrPngBtn.addEventListener('click', () => {
-        const img = qrCanvas.querySelector('img') || qrCanvas.querySelector('canvas');
-        if (!img) return;
-
-        let dataUrl = img.src;
-        if (img.tagName.toLowerCase() === 'canvas') {
-            dataUrl = img.toDataURL('image/png');
-        }
-
-        const a = document.createElement('a');
-        a.href = dataUrl;
-        a.download = 'qrcode.png';
-        a.click();
-        window.showToast('QR kod PNG olarak indirildi!', 'success');
-    });
-
-    downloadQrJpgBtn.addEventListener('click', () => {
-        const canvas = qrCanvas.querySelector('canvas');
-        if (!canvas) {
-            // Convert img to canvas
-            const img = qrCanvas.querySelector('img');
-            if (!img) return;
-            const tempCanvas = document.createElement('canvas');
-            tempCanvas.width = img.naturalWidth || 180;
-            tempCanvas.height = img.naturalHeight || 180;
-            const ctx = tempCanvas.getContext('2d');
-            ctx.fillStyle = '#FFFFFF';
-            ctx.fillRect(0, 0, tempCanvas.width, tempCanvas.height);
-            ctx.drawImage(img, 0, 0);
-
-            const a = document.createElement('a');
-            a.href = tempCanvas.toDataURL('image/jpeg', 0.95);
-            a.download = 'qrcode.jpg';
-            a.click();
-        } else {
-            const tempCanvas = document.createElement('canvas');
-            tempCanvas.width = canvas.width;
-            tempCanvas.height = canvas.height;
-            const ctx = tempCanvas.getContext('2d');
-            ctx.fillStyle = '#FFFFFF';
-            ctx.fillRect(0, 0, tempCanvas.width, tempCanvas.height);
-            ctx.drawImage(canvas, 0, 0);
-
-            const a = document.createElement('a');
-            a.href = tempCanvas.toDataURL('image/jpeg', 0.95);
-            a.download = 'qrcode.jpg';
-            a.click();
-        }
-        window.showToast('QR kod JPG olarak indirildi!', 'success');
-    });
-
-    // ----------------------------------------------------
-    // Tool 2: Color Code Converter
-    // ----------------------------------------------------
-    const interactiveColorPicker = document.getElementById('interactiveColorPicker');
-    const colorBanner = document.getElementById('colorBanner');
-    const hexInput = document.getElementById('hexInput');
-    const rgbInput = document.getElementById('rgbInput');
-    const hslInput = document.getElementById('hslInput');
-
-    function hexToRgb(hex) {
-        const clean = hex.replace('#', '');
-        const bigint = parseInt(clean, 16);
-        const r = (bigint >> 16) & 255;
-        const g = (bigint >> 8) & 255;
-        const b = bigint & 255;
-        return { r, g, b };
+  document.querySelectorAll('.copy-btn').forEach((btn) => btn.addEventListener('click', async (e) => {
+    e.preventDefault();
+    const target = $(btn.dataset.target);
+    try {
+      await navigator.clipboard.writeText(target.value);
+      const original = btn.innerHTML;
+      btn.classList.add('is-done');
+      btn.innerHTML = '<svg class="ico"><use href="#i-check"/></svg>';
+      setTimeout(() => { btn.innerHTML = original; btn.classList.remove('is-done'); }, 1500);
+      showToast(`${target.value} kopyalandı.`, 'success');
+    } catch (err) {
+      showToast('Panoya kopyalanamadı.', 'error');
     }
+  }));
 
-    function rgbToHsl(r, g, b) {
-        r /= 255; g /= 255; b /= 255;
-        const max = Math.max(r, g, b), min = Math.min(r, g, b);
-        let h, s, l = (max + min) / 2;
+  applyColor(hexIn.value, false);
 
-        if (max === min) {
-            h = s = 0;
-        } else {
-            const d = max - min;
-            s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
-            switch (max) {
-                case r: h = (g - b) / d + (g < b ? 6 : 0); break;
-                case g: h = (b - r) / d + 2; break;
-                case b: h = (r - g) / d + 4; break;
-            }
-            h /= 6;
-        }
-        return {
-            h: Math.round(h * 360),
-            s: Math.round(s * 100),
-            l: Math.round(l * 100)
-        };
+  // ---------------------------------------------------------------- Base64
+  const b64Text = $('b64Text');
+  const b64Preview = $('b64Preview');
+
+  $('b64Copy').addEventListener('click', async () => {
+    const text = b64Text.value;
+    if (!text) return;
+    try {
+      await navigator.clipboard.writeText(text);
+      showToast('Base64 metni kopyalandı.', 'success');
+    } catch (err) {
+      showToast('Panoya kopyalanamadı.', 'error');
     }
+  });
 
-    function updateColorsFromHex(hex) {
-        if (!/^#[0-9A-Fa-f]{6}$/.test(hex)) return;
-
-        colorBanner.style.backgroundColor = hex;
-        interactiveColorPicker.value = hex;
-        hexInput.value = hex.toUpperCase();
-
-        const { r, g, b } = hexToRgb(hex);
-        rgbInput.value = `rgb(${r}, ${g}, ${b})`;
-
-        const { h, s, l } = rgbToHsl(r, g, b);
-        hslInput.value = `hsl(${h}, ${s}%, ${l}%)`;
-    }
-
-    interactiveColorPicker.addEventListener('input', (e) => {
-        updateColorsFromHex(e.target.value);
-    });
-
-    hexInput.addEventListener('input', (e) => {
-        let val = e.target.value.trim();
-        if (!val.startsWith('#')) val = '#' + val;
-        if (/^#[0-9A-Fa-f]{6}$/.test(val)) {
-            updateColorsFromHex(val);
-        }
-    });
-
-    // Copy buttons
-    document.querySelectorAll('.btn-copy').forEach(btn => {
-        btn.addEventListener('click', () => {
-            const targetId = btn.getAttribute('data-target');
-            const el = document.getElementById(targetId);
-            if (el) {
-                navigator.clipboard.writeText(el.value);
-                const originalText = btn.textContent;
-                btn.textContent = '✓';
-                setTimeout(() => btn.textContent = originalText, 1500);
-                window.showToast('Panoya kopyalandı!', 'success');
-            }
-        });
-    });
-
-    // ----------------------------------------------------
-    // Tool 3: Base64 to Image
-    // ----------------------------------------------------
-    const base64TextArea = document.getElementById('base64TextArea');
-    const copyBase64Btn = document.getElementById('copyBase64Btn');
-    const renderBase64Btn = document.getElementById('renderBase64Btn');
-    const base64PreviewCol = document.getElementById('base64PreviewCol');
-
-    copyBase64Btn.addEventListener('click', () => {
-        const text = base64TextArea.value.trim();
-        if (!text) return;
-        navigator.clipboard.writeText(text);
-        window.showToast('Base64 metni kopyalandı!', 'success');
-    });
-
-    renderBase64Btn.addEventListener('click', () => {
-        let text = base64TextArea.value.trim();
-        if (!text) {
-            window.showToast('Lütfen Base64 metni girin.', 'error');
-            return;
-        }
-
-        if (!text.startsWith('data:image/')) {
-            text = 'data:image/png;base64,' + text;
-        }
-
-        const img = new Image();
-        img.onload = () => {
-            base64PreviewCol.innerHTML = '';
-            base64PreviewCol.appendChild(img);
-            window.showToast('Görsel başarıyla çözüldü!', 'success');
-        };
-        img.onerror = () => {
-            window.showToast('Geçersiz Base64 formatı.', 'error');
-        };
-        img.src = text;
-    });
-});
+  $('b64Decode').addEventListener('click', () => {
+    let text = b64Text.value.trim();
+    if (!text) return;
+    if (!text.startsWith('data:image/')) text = `data:image/png;base64,${text.replace(/\s+/g, '')}`;
+    const img = new Image();
+    img.alt = 'Base64 önizleme';
+    img.onload = () => {
+      b64Preview.innerHTML = '';
+      b64Preview.appendChild(img);
+      showToast(`Görsel çözüldü (${img.naturalWidth}×${img.naturalHeight}).`, 'success');
+    };
+    img.onerror = () => showToast('Geçersiz Base64 formatı', 'error');
+    img.src = text;
+  });
+})();
