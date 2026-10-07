@@ -249,7 +249,7 @@
         used.add(name);
         zip.file(name, q.output);
       });
-      downloadBlob(await zip.generateAsync({ type: 'blob' }), 'OmniConvert_Gorseller.zip');
+      downloadBlob(await zip.generateAsync({ type: 'blob' }), 'Misacon_Gorseller.zip');
     } finally {
       setBusy(zipBtn, false);
     }

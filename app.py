@@ -1,4 +1,4 @@
-"""OmniConvert Studio — yerel medya ve format dönüştürme sunucusu."""
+"""Misacon — yerel medya ve format dönüştürme sunucusu."""
 import io
 import os
 import re
@@ -335,7 +335,7 @@ def media_info():
 @app.route('/api/proxy-download')
 def proxy_download():
     url = request.args.get('url')
-    filename = request.args.get('filename') or 'omniconvert_download.mp4'
+    filename = request.args.get('filename') or 'misacon_download.mp4'
     if not url:
         return Response('URL parametresi eksik', status=400, mimetype='text/plain')
     try:

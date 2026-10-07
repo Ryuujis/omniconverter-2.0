@@ -63,12 +63,12 @@
   }
 
   function sanitizeTitle(title) {
-    const clean = String(title || 'omniconvert')
+    const clean = String(title || 'misacon')
       .replace(/[^\p{L}\p{N}\s_-]/gu, '')
       .trim()
       .replace(/\s+/g, '_')
       .slice(0, 40);
-    return clean || 'omniconvert';
+    return clean || 'misacon';
   }
 
   function matchesFilter(f, filter) {

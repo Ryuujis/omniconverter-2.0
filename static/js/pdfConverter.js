@@ -552,7 +552,7 @@
     setTimeout(() => {
       try {
         const title = $('txtTitle').value.trim() || 'Resmi Yazışma Belgesi';
-        const author = $('txtAuthor').value.trim() || 'OmniConvert Kullanıcısı';
+        const author = $('txtAuthor').value.trim() || 'Misacon Kullanıcısı';
         const doc = new JsPDF({ unit: 'mm', format: 'a4', orientation: 'p' });
         const margin = 15;
         const width = doc.internal.pageSize.getWidth() - margin * 2;

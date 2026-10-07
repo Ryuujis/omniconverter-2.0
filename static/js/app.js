@@ -1,4 +1,4 @@
-/* OmniConvert Studio — global işlevler: toast, byte biçimi, sekmeler, sağlık, pano. */
+/* Misacon — global işlevler: toast, byte biçimi, sekmeler, sağlık, pano. */
 (function () {
   'use strict';
 
