@@ -1,0 +1,51 @@
+name: misacon
+
+services:
+  misacon:
+    container_name: misacon
+    image: misacon:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    ports:
+      - "5055:5055"
+    volumes:
+      - ./saves:/app/saves
+    env_file:
+      - .env
+    environment:
+      - PORT=5055
+      - PYTHONUNBUFFERED=1
+    x-casaos:
+      envs:
+        - container: PORT
+          description:
+            en_us: Web Port
+      ports:
+        - container: "5055"
+          description:
+            en_us: Misacon Web UI Port
+      volumes:
+        - container: /app/saves
+          description:
+            en_us: Kirito Takvim ve Yedekleme Klasörü
+
+x-casaos:
+  architectures:
+    - amd64
+    - arm64
+    - arm
+  main: misacon
+  description:
+    en_us: "Misacon Studio — Yerel medya, video indirici, görsel/belge dönüştürücü ve çalışma takvimi."
+  tagline:
+    en_us: "Medya & Format Dönüştürücü"
+  developer: "Ryuuji"
+  author: "Akif"
+  icon: "https://cdn-icons-png.flaticon.com/512/3588/3588294.png"
+  title:
+    en_us: Misacon Studio
+  category: Utilities
+  port_map: "5055"
+  index: /

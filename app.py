@@ -1,5 +1,7 @@
 """Misacon — yerel medya ve format dönüştürme sunucusu."""
+import datetime
 import io
+import json
 import os
 import re
 import warnings
@@ -10,7 +12,7 @@ from urllib.parse import quote, urlparse
 warnings.filterwarnings('ignore')
 
 import requests
-from flask import Flask, Response, jsonify, render_template, request, send_file
+from flask import Flask, Response, jsonify, redirect, render_template, request, send_file, session, url_for
 
 try:
     from PIL import Image
@@ -27,11 +29,87 @@ try:
 except ImportError:  # pragma: no cover
     parth_dl = None
 
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+# .env yükleyici
+def _load_env():
+    env_file = os.path.join(BASE_DIR, '.env')
+    try:
+        from dotenv import load_dotenv
+        load_dotenv(env_file)
+    except Exception:
+        pass
+    if os.path.exists(env_file):
+        try:
+            with open(env_file, 'r', encoding='utf-8') as f:
+                for line in f:
+                    line = line.strip()
+                    if not line or line.startswith('#') or '=' not in line:
+                        continue
+                    k, v = line.split('=', 1)
+                    k = k.strip()
+                    v = v.strip().strip("'\"")
+                    if k and k not in os.environ:
+                        os.environ[k] = v
+        except Exception:
+            pass
+
+_load_env()
+
 app = Flask(__name__)
+app.secret_key = os.environ.get('SECRET_KEY', 'misacon-super-secret-kirito-auth-key-2026-prod')
 app.config['MAX_CONTENT_LENGTH'] = 100 * 1024 * 1024
+app.config['TEMPLATES_AUTO_RELOAD'] = True
+app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 0
+app.config['PERMANENT_SESSION_LIFETIME'] = datetime.timedelta(days=30)
 
 USER_AGENT = ('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 '
               '(KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36')
+
+
+# --------------------------------------------------------------------------
+# Kimlik doğrulama & Oturum
+# --------------------------------------------------------------------------
+@app.before_request
+def auth_middleware():
+    if request.path.startswith('/static/') or request.path == '/api/health':
+        return None
+    if request.endpoint in ('login', 'static', 'health'):
+        return None
+    if not session.get('logged_in'):
+        if request.path.startswith('/api/'):
+            return jsonify({'success': False, 'error': 'Giriş yapmanız gerekiyor.', 'login_required': True}), 401
+        return redirect(url_for('login'))
+
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if session.get('logged_in'):
+        return redirect(url_for('index'))
+
+    error = None
+    if request.method == 'POST':
+        username = request.form.get('username', '').strip()
+        password = request.form.get('password', '').strip()
+
+        expected_user = os.environ.get('ADMIN_USERNAME', 'kirito')
+        expected_pass = os.environ.get('ADMIN_PASSWORD', 'asuna<3kirito')
+
+        if username == expected_user and password == expected_pass:
+            session.permanent = True
+            session['logged_in'] = True
+            session['username'] = username
+            return redirect(url_for('index'))
+        else:
+            error = 'Hatalı kullanıcı adı veya şifre!'
+
+    return render_template('login.html', error=error)
+
+
+@app.route('/logout')
+def logout():
+    session.clear()
+    return redirect(url_for('login'))
 
 
 # --------------------------------------------------------------------------
@@ -541,6 +619,263 @@ def convert_document():
         }})
     except Exception as exc:
         return jsonify({'error': f'Belge işlenirken hata oluştu: {exc}'}), 500
+
+
+# --------------------------------------------------------------------------
+# Çalışma Takibi Kayıtları (saves/ klasörüne kirito_data.json & Telegram API)
+# --------------------------------------------------------------------------
+SAVES_DIR = os.path.join(BASE_DIR, 'saves')
+BACKUPS_DIR = os.path.join(SAVES_DIR, 'backups')
+CASAOS_DIR = os.path.join(BASE_DIR, 'casaos_app')
+CASAOS_BACKUPS_DIR = os.path.join(CASAOS_DIR, 'backups')
+OLDSITE_DIR = os.path.join(BASE_DIR, 'oldsite')
+OLDSITE_BACKUPS_DIR = os.path.join(OLDSITE_DIR, 'backups')
+
+os.makedirs(SAVES_DIR, exist_ok=True)
+os.makedirs(BACKUPS_DIR, exist_ok=True)
+if os.path.exists(CASAOS_DIR):
+    os.makedirs(CASAOS_BACKUPS_DIR, exist_ok=True)
+if os.path.exists(OLDSITE_DIR):
+    os.makedirs(OLDSITE_BACKUPS_DIR, exist_ok=True)
+
+DAYS_TR = ["Pazar", "Pazartesi", "Salı", "Çarşamba", "Perşembe", "Cuma", "Cumartesi"]
+DAYS_SHORT_TR = ["Paz", "Pzt", "Sal", "Çar", "Per", "Cum", "Cmt"]
+
+
+def get_telegram_config():
+    """Çalışma anında .env veya ortam değişkenlerinden Telegram bilgilerini alır."""
+    token = os.environ.get('TELEGRAM_BOT_TOKEN', '').strip()
+    raw_ids = os.environ.get('TELEGRAM_CHAT_IDS', '').strip()
+    chat_ids = [cid.strip() for cid in raw_ids.split(',') if cid.strip()]
+    return token, chat_ids
+
+
+def send_telegram_message(text):
+    """Telegram bot üzerinden tüm kayıtlı chat_id'lere mesaj gönderir."""
+    token, chat_ids = get_telegram_config()
+    if not token or not chat_ids:
+        return False, ["Bot token veya chat id bulunamadı (.env dosyasını kontrol edin)."]
+    url = f"https://api.telegram.org/bot{token}/sendMessage"
+    success_count = 0
+    errors = []
+    for chat_id in chat_ids:
+        try:
+            resp = requests.post(url, data={'chat_id': chat_id, 'text': text}, timeout=8)
+            if resp.status_code == 200:
+                success_count += 1
+            else:
+                errors.append(f"{chat_id}: {resp.status_code} {resp.text}")
+        except Exception as exc:
+            errors.append(f"{chat_id}: {exc}")
+    return success_count > 0, errors
+
+
+@app.route('/api/tracker/save', methods=['POST'])
+def save_tracker():
+    try:
+        payload = request.get_json(force=True, silent=True)
+        if payload is None:
+            return jsonify({'success': False, 'error': 'Geçersiz veri gönderildi.'}), 400
+
+        # inputs: 28 elemanlı diziye dönüştür
+        if isinstance(payload, list):
+            new_data = payload
+        elif isinstance(payload, dict):
+            if 'inputs' in payload and isinstance(payload['inputs'], list):
+                new_data = payload['inputs']
+            elif 'cells' in payload and isinstance(payload['cells'], dict):
+                new_data = []
+                for w in range(4):
+                    for d in range(7):
+                        new_data.append(payload['cells'].get(f"c{w}-{d}", ""))
+            else:
+                new_data = payload.get('data', [])
+        else:
+            new_data = []
+
+        if len(new_data) < 28:
+            new_data = list(new_data) + [''] * (28 - len(new_data))
+        new_data = [str(x).strip() if x is not None else '' for x in new_data[:28]]
+
+        # Mevcut veriyi oku (değişiklikleri tespit etmek için)
+        primary_file = os.path.join(SAVES_DIR, 'kirito_data.json')
+        source_old = primary_file
+        if not os.path.exists(primary_file):
+            if os.path.exists(os.path.join(CASAOS_DIR, 'kirito_data.json')):
+                source_old = os.path.join(CASAOS_DIR, 'kirito_data.json')
+            elif os.path.exists(os.path.join(OLDSITE_DIR, 'kirito_data.json')):
+                source_old = os.path.join(OLDSITE_DIR, 'kirito_data.json')
+
+        old_data = []
+        if os.path.exists(source_old):
+            try:
+                with open(source_old, 'r', encoding='utf-8') as f:
+                    raw_old = json.load(f)
+                    if isinstance(raw_old, list):
+                        old_data = [str(x).strip() if x is not None else '' for x in raw_old]
+            except Exception:
+                old_data = []
+
+        # Değişiklikleri tespit et
+        changes = []
+        count = max(len(new_data), len(old_data), 28)
+        for i in range(count):
+            old_val = (old_data[i] if i < len(old_data) else '').strip()
+            new_val = (new_data[i] if i < len(new_data) else '').strip()
+            old_clean = '-' if not old_val else old_val
+            new_clean = '-' if not new_val else new_val
+            if old_clean != new_clean:
+                week_num = (i // 7) + 1
+                day_name = DAYS_TR[i % 7]
+                changes.append(f"{week_num}. Hafta {day_name}: {old_clean} ➡️ {new_clean}")
+
+        # kirito_data.json dosyasına kaydet (saves/ ve varsa casaos_app/)
+        with open(primary_file, 'w', encoding='utf-8') as f:
+            json.dump(new_data, f, ensure_ascii=False)
+
+        if os.path.exists(CASAOS_DIR):
+            try:
+                with open(os.path.join(CASAOS_DIR, 'kirito_data.json'), 'w', encoding='utf-8') as f:
+                    json.dump(new_data, f, ensure_ascii=False)
+            except Exception:
+                pass
+
+        if os.path.exists(OLDSITE_DIR):
+            try:
+                with open(os.path.join(OLDSITE_DIR, 'kirito_data.json'), 'w', encoding='utf-8') as f:
+                    json.dump(new_data, f, ensure_ascii=False)
+            except Exception:
+                pass
+
+        # Tarihli yedek oluştur (backups/kirito_data_YYYY-MM-DD.json)
+        now = datetime.datetime.now()
+        date_str = now.strftime('%Y-%m-%d')
+        time_str = now.strftime('%H:%M:%S')
+        backup_filename = f"kirito_data_{date_str}.json"
+
+        with open(os.path.join(BACKUPS_DIR, backup_filename), 'w', encoding='utf-8') as f:
+            json.dump(new_data, f, ensure_ascii=False)
+
+        if os.path.exists(CASAOS_BACKUPS_DIR):
+            try:
+                with open(os.path.join(CASAOS_BACKUPS_DIR, backup_filename), 'w', encoding='utf-8') as f:
+                    json.dump(new_data, f, ensure_ascii=False)
+            except Exception:
+                pass
+
+        if os.path.exists(OLDSITE_BACKUPS_DIR):
+            try:
+                with open(os.path.join(OLDSITE_BACKUPS_DIR, backup_filename), 'w', encoding='utf-8') as f:
+                    json.dump(new_data, f, ensure_ascii=False)
+            except Exception:
+                pass
+
+        # Telegram bildirimi gönder
+        if changes:
+            changes_text = "\n".join(changes)
+        else:
+            changes_text = "Kayıt yapıldı ancak saatlerde bir değişiklik yapılmadı."
+
+        message = (
+            "Kirito Takvimi Güncellendi!\n\n"
+            f"Tarih: {date_str} {time_str}\n\n"
+            f"YAPILAN DEĞİŞİKLİKLER:\n{changes_text}"
+        )
+
+        telegram_ok, tg_err = send_telegram_message(message)
+
+        return jsonify({
+            'success': True,
+            'filename': 'kirito_data.json',
+            'path': 'saves/kirito_data.json',
+            'backup': f"saves/backups/{backup_filename}",
+            'changes_count': len(changes),
+            'telegram_sent': telegram_ok,
+            'telegram_errors': tg_err if not telegram_ok else [],
+            'saved_at': f"{date_str} {time_str}"
+        })
+    except Exception as exc:
+        return jsonify({'success': False, 'error': str(exc)}), 500
+
+
+@app.route('/api/tracker/load', methods=['GET'])
+def load_tracker():
+    try:
+        primary_file = os.path.join(SAVES_DIR, 'kirito_data.json')
+        source_file = primary_file
+        if not os.path.exists(primary_file):
+            if os.path.exists(os.path.join(CASAOS_DIR, 'kirito_data.json')):
+                source_file = os.path.join(CASAOS_DIR, 'kirito_data.json')
+            elif os.path.exists(os.path.join(OLDSITE_DIR, 'kirito_data.json')):
+                source_file = os.path.join(OLDSITE_DIR, 'kirito_data.json')
+
+        if not os.path.exists(source_file):
+            return jsonify({'success': False, 'exists': False, 'message': 'Kayıt dosyası bulunamadı.'}), 404
+
+        with open(source_file, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+
+        return jsonify({'success': True, 'exists': True, 'filename': 'kirito_data.json', 'data': data})
+    except Exception as exc:
+        return jsonify({'success': False, 'error': str(exc)}), 500
+
+
+@app.route('/api/tracker/send-telegram', methods=['POST'])
+def send_tracker_telegram():
+    try:
+        payload = request.get_json(force=True, silent=True) or {}
+        inputs = payload.get('inputs', [])
+        totals = payload.get('totals', [])
+        grand_total = payload.get('grandTotal', '0.00')
+
+        if len(inputs) < 28:
+            primary_file = os.path.join(SAVES_DIR, 'kirito_data.json')
+            if os.path.exists(primary_file):
+                with open(primary_file, 'r', encoding='utf-8') as f:
+                    inputs = json.load(f)
+
+        message = "📊 KIRITO TAKVIMI GUNCEL DURUM\n\n"
+        for w in range(4):
+            message += f"{w + 1}. Hafta:\n"
+            week_parts = []
+            for d in range(7):
+                idx = w * 7 + d
+                val = (inputs[idx] if idx < len(inputs) else '').strip()
+                if not val:
+                    val = "-"
+                week_parts.append(f"{DAYS_SHORT_TR[d]}: {val}")
+            message += " | ".join(week_parts) + "\n"
+            tot = totals[w] if w < len(totals) else '0.00'
+            message += f"🔹 Toplam: {tot} Saat\n\n"
+
+        message += f"🏆 AYLIK GENEL TOPLAM: {grand_total} Saat"
+
+        ok, errors = send_telegram_message(message)
+        if ok:
+            return jsonify({'success': True, 'message': 'Telegram mesajı başarıyla gönderildi.'})
+        else:
+            return jsonify({'success': False, 'error': f"Telegram gönderilemedi: {'; '.join(errors)}"}), 500
+    except Exception as exc:
+        return jsonify({'success': False, 'error': str(exc)}), 500
+
+
+@app.route('/api/tracker/saves', methods=['GET'])
+def list_tracker_saves():
+    try:
+        files = []
+        if os.path.exists(SAVES_DIR):
+            for name in sorted(os.listdir(SAVES_DIR)):
+                if name.endswith('.json'):
+                    fp = os.path.join(SAVES_DIR, name)
+                    stat = os.stat(fp)
+                    files.append({
+                        'filename': name,
+                        'size': stat.st_size,
+                        'modified': datetime.datetime.fromtimestamp(stat.st_mtime).isoformat()
+                    })
+        return jsonify({'success': True, 'saves': files})
+    except Exception as exc:
+        return jsonify({'success': False, 'error': str(exc)}), 500
 
 
 if __name__ == '__main__':

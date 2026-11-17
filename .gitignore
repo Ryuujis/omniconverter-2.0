@@ -30,4 +30,15 @@ Thumbs.db
 
 # Environment variables
 .env
-.env.local
+.env.*
+!.env.example
+
+# Save files, data and backups
+saves/
+save/
+**/backups/
+backups/
+kirito_data.json
+**/kirito_data*.json
+*.sav
+*.save

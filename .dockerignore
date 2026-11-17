@@ -1,0 +1,14 @@
+.venv
+.git
+.gitignore
+.DS_Store
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache
+oldsite
+casaos_app
+.env
+.env.*
+!.env.example

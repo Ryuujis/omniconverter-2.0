@@ -91,9 +91,21 @@
         <svg class="ico"><use href="#i-spark"/></svg>
         <span class="tab-btn__txt"><b>Hızlı Araçlar</b><small>QR · Renk · Base64</small></span>
       </button>
+      <button class="tab-btn" role="tab" data-tab="tracker" aria-selected="false">
+        <span class="tab-btn__num">06</span>
+        <svg class="ico"><use href="#i-wave"/></svg>
+        <span class="tab-btn__txt"><b>Çalışma Takibi</b><small>4 Hafta · Süre</small></span>
+      </button>
     </nav>
 
     <div class="rail__foot">
+      <div class="rail__user" style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:rgba(255,255,255,0.03);border:1px solid var(--line);border-radius:var(--r-sm);margin-bottom:12px;">
+        <span style="font-size:13px;font-weight:600;color:var(--ink-2);display:flex;align-items:center;gap:6px;">
+          <span style="width:7px;height:7px;border-radius:50%;background:var(--ok);display:inline-block;"></span>
+          {{ session.get('username', 'kirito') }}
+        </span>
+        <a href="{{ url_for('logout') }}" style="color:var(--muted);text-decoration:none;font-size:12px;padding:3px 8px;border-radius:6px;background:rgba(255,255,255,0.05);transition:all 0.2s;" onmouseover="this.style.color='var(--bad)';this.style.background='rgba(255,107,107,0.1)'" onmouseout="this.style.color='var(--muted)';this.style.background='rgba(255,255,255,0.05)'" title="Oturumu Kapat">Çıkış</a>
+      </div>
       <div class="status" id="statusBadge">
         <span class="status-dot online"></span>
         <span id="statusText">Bağlanıyor…</span>
@@ -106,9 +118,15 @@
   <main class="stage">
     <header class="topbar">
       <div class="crumb"><span class="crumb__studio">Studio</span><span class="crumb__sep">/</span><span id="crumbName">Reels &amp; Video İndirici</span></div>
-      <button class="btn btn--ghost btn--sm" id="pasteLinkBtn" type="button">
-        <svg class="ico"><use href="#i-paste"/></svg><span>Bağlantı Yapıştır</span>
-      </button>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <button class="btn btn--ghost btn--sm" id="pasteLinkBtn" type="button">
+          <svg class="ico"><use href="#i-paste"/></svg><span>Bağlantı Yapıştır</span>
+        </button>
+        <a class="btn btn--ghost btn--sm" href="{{ url_for('logout') }}" title="Oturumu Kapat" style="color:var(--muted);">
+          <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+          <span>Çıkış</span>
+        </a>
+      </div>
     </header>
 
     <!-- ======================= 01 İNDİRİCİ ======================= -->
@@ -539,6 +557,158 @@
       </div>
     </section>
 
+    <!-- ======================= 06 ÇALIŞMA TAKİPÇİSİ ======================= -->
+    <section class="tab-pane" id="tab-tracker" role="tabpanel" data-title="Çalışma Takipçisi">
+      <div class="wt-hero-grid">
+        <span class="hero__num wt-hero-num" aria-hidden="true">06</span>
+        <div class="wt-hero-copy">
+          <p class="eyebrow">ODAKLAN · ÜRET · İZ BIRAK</p>
+          <h1 class="hero__title">Zamanın, <em>senin yörüngende.</em></h1>
+          <p class="hero__lede">Büyük işler, küçük saatlerin birikimi. Çalışmanı kaydet, emeğinin tamamını gör.</p>
+        </div>
+
+        <!-- Orbit sahnesi -->
+        <div class="wt-orbit-scene">
+          <svg class="wt-orbit-art" viewBox="0 0 480 280" fill="none" aria-hidden="true">
+            <defs>
+              <radialGradient id="wt-planet" cx=".3" cy=".25" r=".8">
+                <stop stop-color="#ffe5df"/>
+                <stop offset=".35" stop-color="#ff8a6e"/>
+                <stop offset=".7" stop-color="#c43a1f"/>
+                <stop offset="1" stop-color="#5a1a0a"/>
+              </radialGradient>
+              <linearGradient id="wt-orbit-grad" x1="30" y1="60" x2="450" y2="250" gradientUnits="userSpaceOnUse">
+                <stop stop-color="#ff5a36" stop-opacity=".08"/>
+                <stop offset=".45" stop-color="#ff5a36" stop-opacity=".5"/>
+                <stop offset="1" stop-color="#ff5a36" stop-opacity=".1"/>
+              </linearGradient>
+              <radialGradient id="wt-moon">
+                <stop stop-color="#e8cfc8"/>
+                <stop offset="1" stop-color="#7a4a40"/>
+              </radialGradient>
+            </defs>
+            <circle cx="240" cy="140" r="103" stroke="#ff5a36" stroke-opacity=".1" stroke-dasharray="2 6"/>
+            <circle cx="240" cy="140" r="78" stroke="#ff5a36" stroke-opacity=".09"/>
+            <ellipse cx="240" cy="140" rx="218" ry="73" transform="rotate(-19 240 140)" stroke="url(#wt-orbit-grad)"/>
+            <ellipse cx="240" cy="140" rx="185" ry="103" transform="rotate(24 240 140)" stroke="#ff5a36" stroke-opacity=".12"/>
+            <path d="M35 217 49 213M42 208l3 12M406 45h8m-4-4v8" stroke="#ff5a36" stroke-opacity=".6"/>
+            <circle cx="367" cy="53" r="24" fill="url(#wt-planet)"/>
+            <ellipse cx="367" cy="53" rx="37" ry="9" transform="rotate(-29 367 53)" stroke="#ffb5a5" stroke-opacity=".5"/>
+            <circle cx="96" cy="180" r="7" fill="url(#wt-moon)"/>
+            <circle cx="426" cy="143" r="3" fill="#ff5a36"/>
+            <circle cx="68" cy="78" r="1.5" fill="#e8a090"/>
+            <circle cx="140" cy="39" r="1" fill="#e8a090"/>
+            <circle cx="316" cy="246" r="1.5" fill="#e8a090"/>
+            <circle cx="445" cy="225" r="1" fill="#e8a090"/>
+            <path d="M193 22h17m-8-3v6M263 263h17" stroke="#8b4a3a" stroke-width=".6"/>
+          </svg>
+          <div class="wt-orbit-total">
+            <div class="wt-orbit-caption" id="wt-monthly-label">AYLIK TOPLAM</div>
+            <output class="wt-orbit-time" id="wt-monthly-total"
+              aria-labelledby="wt-monthly-label" aria-live="polite" aria-atomic="true">0:00</output>
+            <div class="wt-orbit-unit">saat : dakika / 4 hafta</div>
+          </div>
+          <div class="wt-orbit-label"><span>●</span> HER DAKİKA BİR İZ.</div>
+        </div>
+      </div>
+
+      <!-- Aksiyonlar -->
+      <div class="wt-summary-bar">
+        <div class="wt-summary-right">
+          <button type="button" class="wt-clear-btn" id="wt-clear-button">
+            <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18M9 6V3h6v3M5 6l1 15h12l1-15M10 10v7M14 10v7"/></svg>
+            Temizle
+          </button>
+          <button type="button" class="btn btn--ghost btn--sm" id="wt-telegram-button" title="Tabloyu Telegram'a raporla">
+            <svg class="ico" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg>
+            <span class="btn__label">Telegram'a Gönder</span>
+          </button>
+          <button type="button" class="btn btn--accent btn--sm" id="wt-save-button">
+            <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h12l4 4v12a2 2 0 0 1-2 2Z"/><path d="M7 3v6h9V3M7 21v-8h10v8"/></svg>
+            <span class="btn__label">Kaydet</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Tablo -->
+      <div class="card wt-workspace">
+        <div class="wt-table-wrap" role="region" aria-label="Çalışma süresi tablosu" tabindex="0">
+          <p class="wt-scroll-hint">Diğer günler için yana kaydır <span aria-hidden="true">→</span></p>
+          <table role="table">
+            <caption class="visually-hidden">Dört haftalık çalışma süreleri. Her güne saat veya saat:dakika girin. Haftalık ve aylık toplamlar otomatik hesaplanır.</caption>
+            <thead>
+              <tr>
+                <th scope="col">HAFTA</th>
+                <th scope="col" class="wt-weekend">Pazar</th>
+                <th scope="col">Pazartesi</th>
+                <th scope="col">Salı</th>
+                <th scope="col">Çarşamba</th>
+                <th scope="col">Perşembe</th>
+                <th scope="col">Cuma</th>
+                <th scope="col" class="wt-weekend">Cumartesi</th>
+                <th scope="col" class="wt-total-col">TOPLAM</th>
+              </tr>
+            </thead>
+            <tbody id="wt-calendar-body"></tbody>
+          </table>
+        </div>
+        <div class="wt-workspace-foot">
+          <span class="wt-entry-tip" id="wt-input-help">Süre yaz: <code>7:30</code>, <code>7.5</code> veya <code>7h30</code></span>
+          <div class="wt-save-status" id="wt-save-status" role="status" aria-live="polite" aria-atomic="true" data-state="ready">
+            <span class="wt-status-dot" aria-hidden="true"></span>
+            <span id="wt-status-text">Hazır. İlk süreni ekle.</span>
+          </div>
+        </div>
+      </div>
+      <p class="visually-hidden" id="wt-invalid-help">Geçersiz süre. 7.5 veya 7:30 yazın. Dakika 0-59 arasında olmalı. Bu hücre toplama dahil edilmez.</p>
+
+      <!-- İçgörüler -->
+      <div class="wt-insights">
+        <div class="wt-rhythm">
+          <div class="wt-rhythm-heading">
+            <p class="card__label">HAFTALIK RİTİM</p>
+            <div class="wt-filled-count"><strong id="wt-filled-days">0</strong> / 28 gün kayıtlı</div>
+          </div>
+          <div class="wt-rhythm-plot" id="wt-rhythm-plot" role="img" aria-label="Henüz çalışma süresi girilmedi.">
+            <div class="wt-rhythm-week">
+              <div class="wt-rhythm-bar-track"><div class="wt-rhythm-bar" id="wt-rhythm-0"></div></div>
+              <span>01</span>
+            </div>
+            <div class="wt-rhythm-week">
+              <div class="wt-rhythm-bar-track"><div class="wt-rhythm-bar" id="wt-rhythm-1"></div></div>
+              <span>02</span>
+            </div>
+            <div class="wt-rhythm-week">
+              <div class="wt-rhythm-bar-track"><div class="wt-rhythm-bar" id="wt-rhythm-2"></div></div>
+              <span>03</span>
+            </div>
+            <div class="wt-rhythm-week">
+              <div class="wt-rhythm-bar-track"><div class="wt-rhythm-bar" id="wt-rhythm-3"></div></div>
+              <span>04</span>
+            </div>
+          </div>
+        </div>
+        <div class="wt-keyboard-guide" aria-label="Klavye kısayolları">
+          <span class="wt-key-pair"><kbd>↵</kbd><kbd>↓</kbd> Sonraki hafta</span>
+          <span class="wt-key-pair"><kbd>↑</kbd> Önceki hafta</span>
+          <span class="wt-key-pair"><kbd>Ctrl S</kbd> Kaydet</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- 06 diyalog -->
+    <dialog id="wt-clear-dialog" aria-labelledby="wt-clear-title" aria-describedby="wt-clear-description">
+      <div class="wt-dialog-icon">
+        <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6M3 3v6h6"/></svg>
+      </div>
+      <h2 id="wt-clear-title">Yeni bir sayfa açalım mı?</h2>
+      <p id="wt-clear-description">Dört haftadaki tüm süreler ve bu tarayıcıdaki kayıt silinecek. Bu işlem geri alınamaz.</p>
+      <form method="dialog" class="wt-dialog-actions">
+        <button class="btn btn--ghost" value="cancel" autofocus>Vazgeç</button>
+        <button class="btn btn--accent" value="clear">Evet, temizle</button>
+      </form>
+    </dialog>
+
     <footer class="colophon">
       <span>Misacon Studio</span>
       <span>Yerel · Çevrimdışı öncelikli · 100 MB yükleme sınırı</span>
@@ -557,5 +727,6 @@
 <script src="{{ url_for('static', filename='js/pdfConverter.js') }}"></script>
 <script src="{{ url_for('static', filename='js/audioExtractor.js') }}"></script>
 <script src="{{ url_for('static', filename='js/quickTools.js') }}"></script>
+<script src="{{ url_for('static', filename='js/workTracker.js') }}"></script>
 </body>
 </html>

@@ -967,3 +967,428 @@ kbd {
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .001ms !important; animation-iteration-count: 1 !important; transition-duration: .001ms !important; scroll-behavior: auto !important; }
 }
+
+/* ==========================================================================
+   06 — Çalışma Takipçisi (wt- önekli)
+   Renk sistemi: mevcut --bg / --accent / --ink / --line token'larını kullanır.
+   ========================================================================== */
+
+/* Orbit sahnesi ---------------------------------------------------------- */
+.wt-hero-grid {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1.15fr) minmax(280px, 420px);
+  gap: clamp(18px, 3vw, 40px);
+  align-items: end;
+  padding: clamp(34px, 6vw, 72px) 0 clamp(26px, 4vw, 44px);
+}
+.wt-hero-num {
+  align-self: end;
+}
+.wt-hero-copy {
+  display: flex;
+  flex-direction: column;
+}
+
+.wt-orbit-scene {
+  position: relative;
+  height: 280px;
+  width: 100%;
+  max-width: 440px;
+  justify-self: end;
+  align-self: center;
+  display: grid;
+  place-items: center;
+  isolation: isolate;
+  user-select: none;
+}
+.wt-orbit-scene::before {
+  content: '';
+  width: 240px;
+  height: 240px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255,90,54,.09), transparent 70%);
+  position: absolute;
+  animation: wt-pulse 6s ease-in-out infinite;
+  pointer-events: none;
+}
+@keyframes wt-pulse {
+  0%, 100% { transform: scale(1); opacity: .75; }
+  50% { transform: scale(1.08); opacity: 1; }
+}
+.wt-orbit-art {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  z-index: -1;
+  filter: drop-shadow(0 0 16px rgba(255,90,54,.08));
+  transition: transform .5s cubic-bezier(.16, 1, .3, 1);
+}
+.wt-orbit-scene:hover .wt-orbit-art {
+  transform: scale(1.02);
+}
+.wt-orbit-total {
+  text-align: center;
+  padding-bottom: 4px;
+  z-index: 1;
+}
+.wt-orbit-caption {
+  font: 10px/1 var(--mono);
+  letter-spacing: 2px;
+  color: var(--muted);
+}
+.wt-orbit-time {
+  display: block;
+  font: 400 clamp(40px, 4.2vw, 58px)/1 var(--mono);
+  letter-spacing: -4px;
+  color: var(--ink);
+  margin: 10px 0 7px;
+  transition: color .2s;
+}
+.wt-orbit-unit {
+  font-size: 11px;
+  color: var(--muted);
+}
+.wt-orbit-label {
+  position: absolute;
+  bottom: 10px;
+  right: 9px;
+  font: 9px var(--mono);
+  letter-spacing: 1px;
+  color: var(--muted);
+}
+.wt-orbit-label span { color: var(--accent); }
+
+/* Özet çubuğu ------------------------------------------------------------ */
+.wt-summary-bar {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-bottom: 18px;
+}
+.wt-summary-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.wt-clear-btn {
+  border: none;
+  background: none;
+  color: var(--muted);
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 0;
+  font-size: 12px;
+  transition: color .15s;
+}
+.wt-clear-btn:hover { color: var(--bad); }
+
+.btn--success {
+  background: var(--ok) !important;
+  border-color: var(--ok) !important;
+  color: #0c2414 !important;
+  box-shadow: 0 0 16px rgba(143, 227, 173, .35) !important;
+}
+.btn--success svg.ico {
+  stroke: #0c2414 !important;
+}
+
+/* Tablo alanı ------------------------------------------------------------ */
+.wt-workspace {
+  padding: 0;
+  overflow: hidden;
+  margin-bottom: 22px;
+}
+.wt-table-wrap {
+  overflow-x: auto;
+  padding: 0 20px 6px;
+  scrollbar-color: rgba(241,235,224,.12) transparent;
+}
+.wt-scroll-hint {
+  display: none;
+  justify-content: flex-end;
+  gap: 7px;
+  padding: 12px 4px 6px;
+  font: 9px var(--mono);
+  color: var(--muted);
+}
+.wt-scroll-hint span { color: var(--accent); }
+
+.wt-workspace table {
+  border-collapse: separate;
+  border-spacing: 0;
+  width: 100%;
+  table-layout: fixed;
+  min-width: 820px;
+}
+.wt-workspace thead th {
+  padding: 16px 6px;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  text-align: center;
+  color: var(--muted);
+  font: 400 11px/1 var(--sans);
+}
+.wt-workspace thead th:first-child {
+  width: 120px;
+  text-align: left;
+  padding-left: 8px;
+}
+.wt-total-col { width: 140px; color: var(--accent) !important; }
+.wt-weekend { color: var(--faint) !important; }
+
+.wt-workspace tbody th {
+  padding: 18px 8px;
+  border-bottom: 1px solid var(--line);
+  text-align: left;
+  font-weight: 400;
+}
+.wt-week-label {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 11px;
+  white-space: nowrap;
+}
+.wt-week-number {
+  font: 10px/1 var(--mono);
+  color: var(--ink-2);
+  border: 1px solid var(--line-2);
+  width: 26px;
+  height: 26px;
+  display: grid;
+  place-items: center;
+  border-radius: 6px;
+}
+.wt-workspace tbody td {
+  border-bottom: 1px solid var(--line);
+  padding: 10px 5px;
+  position: relative;
+}
+.wt-workspace tbody tr:last-child td,
+.wt-workspace tbody tr:last-child th { border-bottom: 0; }
+
+/* Giriş hücreleri -------------------------------------------------------- */
+.wt-time-input {
+  width: 100%;
+  min-width: 0;
+  height: 42px;
+  text-align: center;
+  padding: 0 4px;
+  border: 1px solid transparent;
+  border-radius: var(--r-sm);
+  background: rgba(255,255,255,.03);
+  color: var(--ink);
+  font: 13px/1 var(--mono);
+  outline: none;
+  transition: border-color .15s, background .15s, box-shadow .15s;
+}
+.wt-time-input::placeholder { color: var(--faint); opacity: 1; }
+.wt-time-input:hover {
+  background: var(--card-2);
+  border-color: var(--line-2);
+}
+.wt-time-input:focus {
+  background: var(--card-2);
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+.wt-has-value .wt-time-input {
+  color: var(--accent-hi);
+  background: rgba(255, 90, 54, .06);
+}
+.wt-invalid .wt-time-input {
+  color: var(--bad);
+  border-color: rgba(255,107,107,.4);
+  background: rgba(255,107,107,.05);
+}
+.wt-invalid::after {
+  content: '!';
+  position: absolute;
+  right: 10px;
+  top: 14px;
+  color: var(--bad);
+  font: 9px var(--mono);
+  pointer-events: none;
+}
+
+/* Hafta toplamı ---------------------------------------------------------- */
+.wt-week-total-cell {
+  padding-left: 20px;
+  padding-right: 12px;
+}
+.wt-week-total {
+  display: block;
+  text-align: right;
+  color: var(--ink);
+  font: 15px/1 var(--mono);
+  letter-spacing: -.5px;
+}
+.wt-total-track {
+  height: 2px;
+  border-radius: 2px;
+  background: var(--line-2);
+  margin-top: 8px;
+  overflow: hidden;
+}
+.wt-total-fill {
+  height: 100%;
+  width: 0;
+  background: var(--accent);
+  transition: width .3s var(--ease);
+}
+
+/* Alt çubuk -------------------------------------------------------------- */
+.wt-workspace-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border-top: 1px solid var(--line);
+  padding: 14px 20px;
+  background: rgba(255,255,255,.018);
+}
+.wt-entry-tip { font-size: 11px; color: var(--muted); }
+.wt-entry-tip code { color: var(--ink-2); font: 11px var(--mono); }
+.wt-save-status {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 11px;
+  color: var(--muted);
+  min-height: 16px;
+}
+.wt-status-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--ok);
+  flex-shrink: 0;
+}
+.wt-save-status[data-state='saved'] .wt-status-dot { background: var(--ok); }
+.wt-save-status[data-state='pending'] .wt-status-dot { background: var(--warn); }
+.wt-save-status[data-state='error']  { color: var(--bad); }
+.wt-save-status[data-state='error']  .wt-status-dot { background: var(--bad); }
+
+/* İçgörüler -------------------------------------------------------------- */
+.wt-insights {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 32px;
+  padding: 22px 0 28px;
+}
+.wt-rhythm {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+}
+.wt-rhythm-heading { min-width: 110px; }
+.wt-filled-count { font-size: 13px; color: var(--ink-2); margin-top: 4px; }
+.wt-filled-count strong { color: var(--accent); font-weight: 500; }
+
+.wt-rhythm-plot {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+  height: 48px;
+  flex: 1;
+  max-width: 200px;
+}
+.wt-rhythm-week {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: center;
+}
+.wt-rhythm-bar-track {
+  height: 30px;
+  width: 100%;
+  background: var(--card);
+  border-radius: 4px;
+  display: flex;
+  align-items: flex-end;
+  overflow: hidden;
+}
+.wt-rhythm-bar {
+  width: 100%;
+  height: 0;
+  background: var(--accent-lo);
+  border-radius: 4px;
+  transition: height .3s var(--ease);
+}
+.wt-rhythm-week:nth-child(2) .wt-rhythm-bar { background: var(--accent); }
+.wt-rhythm-week:nth-child(3) .wt-rhythm-bar { background: var(--accent-hi); }
+.wt-rhythm-week:nth-child(4) .wt-rhythm-bar { background: #ff9b84; }
+.wt-rhythm-week span { color: var(--faint); font: 8px var(--mono); }
+
+.wt-keyboard-guide {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 14px;
+  color: var(--muted);
+  font-size: 11px;
+}
+.wt-key-pair {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+
+/* Diyalog ---------------------------------------------------------------- */
+#wt-clear-dialog {
+  color: var(--ink);
+  background: var(--bg-3);
+  border: 1px solid var(--line-2);
+  border-radius: var(--r);
+  width: min(420px, calc(100% - 32px));
+  padding: 28px;
+  box-shadow: 0 30px 100px rgba(0,0,0,.6);
+}
+#wt-clear-dialog::backdrop {
+  background: rgba(0,0,0,.7);
+  backdrop-filter: blur(6px);
+}
+.wt-dialog-icon {
+  color: var(--accent);
+  width: 36px;
+  height: 36px;
+  border: 1px solid var(--line-2);
+  border-radius: 10px;
+  display: grid;
+  place-items: center;
+  margin-bottom: 20px;
+}
+.wt-dialog-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+  margin-top: 22px;
+}
+
+/* Responsive ------------------------------------------------------------ */
+@media (max-width: 940px) {
+  .wt-hero-grid { grid-template-columns: auto 1fr; grid-template-rows: auto auto; align-items: center; }
+  .wt-orbit-scene { grid-column: 1 / -1; height: 230px; width: min(420px, 100%); margin: 10px auto 0; justify-self: center; }
+  .wt-orbit-time { font-size: 44px; }
+  .wt-insights { grid-template-columns: 1fr; gap: 20px; }
+  .wt-keyboard-guide { justify-content: flex-start; }
+  .wt-rhythm-plot { max-width: none; }
+}
+@media (max-width: 600px) {
+  .wt-scroll-hint { display: flex; }
+  .wt-table-wrap { padding: 0 10px 6px; }
+  .wt-workspace-foot { flex-direction: column; align-items: flex-start; gap: 8px; }
+  .wt-time-input { font-size: 16px; }
+  .wt-summary-bar { justify-content: flex-end; }
+  .wt-orbit-scene { height: 200px; }
+  .wt-orbit-time { font-size: 36px; }
+  .wt-orbit-label { font-size: 8px; bottom: 0; right: 0; }
+}
