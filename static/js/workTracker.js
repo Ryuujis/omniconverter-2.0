@@ -6,7 +6,9 @@
 (() => {
   'use strict';
 
-  const STORAGE_KEY = 'misacon_work_tracker_v1';
+  const CURRENT_USER = (document.body?.dataset?.username || 'kirito').trim().toLowerCase() || 'kirito';
+  const STORAGE_KEY = `misacon_work_tracker_v1_${CURRENT_USER}`;
+  const USER_DATA_FILE = `saves/${CURRENT_USER}_data.json`;
   const WEEKS = 4;
   const DAYS = 7;
   const MAX_MINUTES = Math.floor(Number.MAX_SAFE_INTEGER / (WEEKS * DAYS));
@@ -238,7 +240,7 @@
     if (saveBtn) {
       saveBtn.disabled = true;
     }
-    setStatus('saves/kirito_data.json kaydediliyor ve Telegram bildiriliyor…', 'pending');
+    setStatus(`${USER_DATA_FILE} kaydediliyor ve Telegram bildiriliyor…`, 'pending');
 
     try {
       const flatInputs = getFlatInputs();
@@ -260,7 +262,7 @@
         throw new Error(result.error || 'Sunucu hatası');
       }
 
-      let msg = 'saves/kirito_data.json kaydedildi';
+      let msg = `${result.path || USER_DATA_FILE} kaydedildi`;
       if (result.telegram_sent) {
         msg += ' • Telegram bildirildi';
       }
@@ -351,7 +353,7 @@
           serverLoaded = true;
           refresh();
           saveLocal();
-          setStatus('saves/kirito_data.json yüklendi', 'saved');
+          setStatus(`saves/${result.filename || (CURRENT_USER + '_data.json')} yüklendi`, 'saved');
           return;
         }
       }

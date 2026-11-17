@@ -18,7 +18,7 @@
   const playerToggle = $('playerToggle');
   const filterButtons = document.querySelectorAll('#qualityFilters .filter-btn');
 
-  const PLATFORM_ICONS = { ig: 'i-ig', yt: 'i-yt', tt: 'i-tt', link: 'i-link' };
+  const PLATFORM_ICONS = { ig: 'i-ig', yt: 'i-yt', tt: 'i-tt', kick: 'i-kick', link: 'i-link' };
   const PREF_TO_FILTER = { auto: 'all', audio: 'audio', '1080p': '1080p', '720p': '720p', '480p': 'sd', '360p': 'sd' };
   const FILTER_NAMES = { all: 'Tümü', '1080p': '1080p Full HD', '720p': '720p HD', sd: '480p–360p SD', audio: 'MP3 / Ses' };
   const MIRROR_LABELS = {
@@ -37,6 +37,7 @@
     if (u.includes('instagram.com')) return 'ig';
     if (u.includes('youtube.com') || u.includes('youtu.be')) return 'yt';
     if (u.includes('tiktok.com')) return 'tt';
+    if (u.includes('kick.com')) return 'kick';
     return 'link';
   }
 
@@ -200,7 +201,7 @@
     durationEl.hidden = !data.duration;
     durationEl.textContent = formatDuration(data.duration);
     $('resultTitle').textContent = data.title || 'Başlıksız içerik';
-    $('resultAuthor').textContent = data.author || (platform === 'instagram' ? 'Instagram Kullanıcısı' : 'Kanal / Yayıncı');
+    $('resultAuthor').textContent = data.author || (platform === 'instagram' ? 'Instagram Kullanıcısı' : platform === 'kick' ? 'Kick Yayıncısı' : 'Kanal / Yayıncı');
     cover.classList.toggle('is-portrait', platform === 'instagram' || platform === 'tiktok' || /\/shorts\//.test(data.url || ''));
     thumb.onerror = () => { thumb.onerror = null; thumb.src = FALLBACK_COVER; };
     thumb.src = data.thumbnail || FALLBACK_COVER;

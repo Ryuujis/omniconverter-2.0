@@ -4,6 +4,9 @@ import io
 import json
 import os
 import re
+import shutil
+import subprocess
+import tempfile
 import warnings
 import zipfile
 import xml.etree.ElementTree as ET
@@ -82,6 +85,13 @@ def auth_middleware():
         return redirect(url_for('login'))
 
 
+def _configured_users():
+    return {
+        os.environ.get('ADMIN_USERNAME', 'kirito'): os.environ.get('ADMIN_PASSWORD', 'asuna<3kirito'),
+        'haruka': 'haruka124',
+    }
+
+
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if session.get('logged_in'):
@@ -92,10 +102,8 @@ def login():
         username = request.form.get('username', '').strip()
         password = request.form.get('password', '').strip()
 
-        expected_user = os.environ.get('ADMIN_USERNAME', 'kirito')
-        expected_pass = os.environ.get('ADMIN_PASSWORD', 'asuna<3kirito')
-
-        if username == expected_user and password == expected_pass:
+        users = _configured_users()
+        if username in users and users[username] == password:
             session.permanent = True
             session['logged_in'] = True
             session['username'] = username
@@ -145,6 +153,8 @@ def detect_platform(url):
         return 'twitter'
     if 'pinterest.' in u or 'pin.it' in u:
         return 'pinterest'
+    if 'kick.com' in u:
+        return 'kick'
     return 'generic'
 
 
@@ -374,6 +384,74 @@ def analyze_youtube(url, data):
         data['direct_video_url'] = video[0]['url']
 
 
+def analyze_kick(url, data):
+    info = ytdlp_extract(url, {'socket_timeout': 10})
+    if not info:
+        return
+    if info.get('extractor') == 'kick:live':
+        raise ValueError('Canlı yayınlar doğrudan indirilemez; lütfen Kick klip veya geçmiş yayın (VOD) bağlantısı girin.')
+
+    data['title'] = info.get('title') or 'Kick Video'
+    data['thumbnail'] = info.get('thumbnail') or ''
+    data['author'] = info.get('uploader') or info.get('channel') or ''
+    data['duration'] = int(info.get('duration') or 0)
+
+    by_height = {}
+    fallback_videos = []
+    audio = []
+    for f in info.get('formats') or []:
+        furl = f.get('url') or ''
+        if not furl:
+            continue
+        vcodec = f.get('vcodec') or ''
+        acodec = f.get('acodec') or ''
+        size = f.get('filesize') or f.get('filesize_approx') or 0
+        if vcodec == 'none' and acodec not in ('', 'none'):
+            abr = int(f.get('abr') or 0)
+            audio.append({
+                'id': f.get('format_id') or f'kick_audio_{len(audio)}',
+                'label': f'Ses ({abr} kbps)' if abr else 'Ses Akışı',
+                'quality': 0, 'quality_tag': 'audio',
+                'ext': f.get('ext') or 'm4a', 'type': 'audio',
+                'url': furl, 'filesize': size,
+            })
+            continue
+        if vcodec == 'none':
+            continue
+
+        h = int(f.get('height') or 0)
+        fps = int(f.get('fps') or 0)
+        if h > 0:
+            prev = by_height.get(h)
+            score = (fps, f.get('tbr') or 0)
+            if prev and prev[0] >= score:
+                continue
+            tag, _ = height_label(h)
+            fps_str = f' ({fps}fps)' if fps > 30 else ''
+            by_height[h] = (score, {
+                'id': f.get('format_id') or f'kick_{h}',
+                'label': f'MP4 {h}p{fps_str}',
+                'quality': h, 'quality_tag': tag,
+                'ext': 'mp4', 'type': 'video',
+                'url': furl, 'filesize': size,
+            })
+        elif not fallback_videos:
+            fallback_videos.append({
+                'id': f.get('format_id') or 'kick_hd',
+                'label': 'HD MP4 Video',
+                'quality': 720, 'quality_tag': '720p',
+                'ext': 'mp4', 'type': 'video',
+                'url': furl, 'filesize': size,
+            })
+
+    videos = [item[1] for item in sorted(by_height.values(), key=lambda x: x[1]['quality'], reverse=True)]
+    if not videos:
+        videos = fallback_videos
+    data['formats'] = videos + audio
+    direct_mp4 = next((v['url'] for v in videos if '.m3u8' not in v['url'].lower()), '')
+    data['direct_video_url'] = direct_mp4 or (videos[0]['url'] if videos else '')
+
+
 def analyze_generic(url, data):
     info = ytdlp_extract(url)
     if not info:
@@ -403,11 +481,80 @@ def media_info():
             analyze_instagram(url, data)
         elif platform == 'youtube':
             analyze_youtube(url, data)
+        elif platform == 'kick':
+            analyze_kick(url, data)
         else:
             analyze_generic(url, data)
         return jsonify({'success': True, 'data': data})
     except Exception as exc:
         return jsonify({'error': f'Analiz başarısız: {exc}'}), 500
+
+
+def _find_ffmpeg():
+    found = shutil.which('ffmpeg')
+    if found:
+        return found
+    try:
+        import imageio_ffmpeg
+        return imageio_ffmpeg.get_ffmpeg_exe()
+    except Exception:
+        return None
+
+
+def _download_hls_response(url, filename):
+    if yt_dlp is None:
+        return Response('HLS indirme için yt-dlp gerekli', status=500, mimetype='text/plain')
+    tmpdir = tempfile.mkdtemp(prefix='misacon_hls_')
+    out_path = os.path.join(tmpdir, 'video.mp4')
+    ffmpeg_bin = _find_ffmpeg()
+    opts = {
+        'quiet': True,
+        'no_warnings': True,
+        'outtmpl': out_path,
+        'format': 'best',
+        'merge_output_format': 'mp4',
+    }
+    if ffmpeg_bin:
+        opts['ffmpeg_location'] = ffmpeg_bin
+    try:
+        with yt_dlp.YoutubeDL(opts) as ydl:
+            ydl.download([url])
+        if not os.path.exists(out_path):
+            files = [f for f in os.listdir(tmpdir) if not f.endswith('.part')]
+            if not files:
+                raise RuntimeError('HLS akışı indirilemedi')
+            out_path = os.path.join(tmpdir, files[0])
+        if ffmpeg_bin:
+            fixed_path = os.path.join(tmpdir, 'faststart.mp4')
+            remux = subprocess.run(
+                [ffmpeg_bin, '-y', '-i', out_path, '-c', 'copy', '-movflags', '+faststart', fixed_path],
+                capture_output=True,
+            )
+            if remux.returncode == 0 and os.path.exists(fixed_path) and os.path.getsize(fixed_path) > 0:
+                out_path = fixed_path
+        size = os.path.getsize(out_path)
+    except Exception as exc:
+        shutil.rmtree(tmpdir, ignore_errors=True)
+        return Response(f'İndirme hatası: {exc}', status=500, mimetype='text/plain')
+
+    encoded = quote(filename)
+    headers = {
+        'Content-Disposition': f'attachment; filename="{encoded}"; filename*=UTF-8\'\'{encoded}',
+        'Content-Length': str(size),
+    }
+
+    def generate():
+        try:
+            with open(out_path, 'rb') as f:
+                while True:
+                    chunk = f.read(64 * 1024)
+                    if not chunk:
+                        break
+                    yield chunk
+        finally:
+            shutil.rmtree(tmpdir, ignore_errors=True)
+
+    return Response(generate(), headers=headers, content_type='video/mp4')
 
 
 @app.route('/api/proxy-download')
@@ -418,11 +565,15 @@ def proxy_download():
         return Response('URL parametresi eksik', status=400, mimetype='text/plain')
     try:
         parsed = urlparse(url)
+        if parsed.path.lower().endswith('.m3u8'):
+            return _download_hls_response(url, filename)
         host = parsed.netloc.lower()
         if 'googlevideo' in host or 'youtube' in host:
             referer = 'https://www.youtube.com/'
         elif 'cdninstagram' in host or 'fbcdn' in host or 'instagram' in host:
             referer = 'https://www.instagram.com/'
+        elif 'kick' in host:
+            referer = 'https://kick.com/'
         else:
             referer = f'{parsed.scheme}://{parsed.netloc}/'
         upstream = requests.get(url, stream=True, timeout=20,
@@ -670,9 +821,23 @@ def send_telegram_message(text):
     return success_count > 0, errors
 
 
+def _tracker_user():
+    raw = (session.get('username') or 'kirito').strip().lower()
+    clean = re.sub(r'[^a-z0-9_-]', '', raw)
+    return clean or 'kirito'
+
+
+def _tracker_filename(user):
+    return f"{user}_data.json"
+
+
 @app.route('/api/tracker/save', methods=['POST'])
 def save_tracker():
     try:
+        user = _tracker_user()
+        data_filename = _tracker_filename(user)
+        is_legacy_kirito = (user == 'kirito')
+
         payload = request.get_json(force=True, silent=True)
         if payload is None:
             return jsonify({'success': False, 'error': 'Geçersiz veri gönderildi.'}), 400
@@ -698,9 +863,9 @@ def save_tracker():
         new_data = [str(x).strip() if x is not None else '' for x in new_data[:28]]
 
         # Mevcut veriyi oku (değişiklikleri tespit etmek için)
-        primary_file = os.path.join(SAVES_DIR, 'kirito_data.json')
+        primary_file = os.path.join(SAVES_DIR, data_filename)
         source_old = primary_file
-        if not os.path.exists(primary_file):
+        if is_legacy_kirito and not os.path.exists(primary_file):
             if os.path.exists(os.path.join(CASAOS_DIR, 'kirito_data.json')):
                 source_old = os.path.join(CASAOS_DIR, 'kirito_data.json')
             elif os.path.exists(os.path.join(OLDSITE_DIR, 'kirito_data.json')):
@@ -729,41 +894,41 @@ def save_tracker():
                 day_name = DAYS_TR[i % 7]
                 changes.append(f"{week_num}. Hafta {day_name}: {old_clean} ➡️ {new_clean}")
 
-        # kirito_data.json dosyasına kaydet (saves/ ve varsa casaos_app/)
+        # Kullanıcıya özel veri dosyasına kaydet (saves/ ve kirito için varsa casaos_app/)
         with open(primary_file, 'w', encoding='utf-8') as f:
             json.dump(new_data, f, ensure_ascii=False)
 
-        if os.path.exists(CASAOS_DIR):
+        if is_legacy_kirito and os.path.exists(CASAOS_DIR):
             try:
                 with open(os.path.join(CASAOS_DIR, 'kirito_data.json'), 'w', encoding='utf-8') as f:
                     json.dump(new_data, f, ensure_ascii=False)
             except Exception:
                 pass
 
-        if os.path.exists(OLDSITE_DIR):
+        if is_legacy_kirito and os.path.exists(OLDSITE_DIR):
             try:
                 with open(os.path.join(OLDSITE_DIR, 'kirito_data.json'), 'w', encoding='utf-8') as f:
                     json.dump(new_data, f, ensure_ascii=False)
             except Exception:
                 pass
 
-        # Tarihli yedek oluştur (backups/kirito_data_YYYY-MM-DD.json)
+        # Tarihli yedek oluştur (backups/<user>_data_YYYY-MM-DD.json)
         now = datetime.datetime.now()
         date_str = now.strftime('%Y-%m-%d')
         time_str = now.strftime('%H:%M:%S')
-        backup_filename = f"kirito_data_{date_str}.json"
+        backup_filename = f"{user}_data_{date_str}.json"
 
         with open(os.path.join(BACKUPS_DIR, backup_filename), 'w', encoding='utf-8') as f:
             json.dump(new_data, f, ensure_ascii=False)
 
-        if os.path.exists(CASAOS_BACKUPS_DIR):
+        if is_legacy_kirito and os.path.exists(CASAOS_BACKUPS_DIR):
             try:
                 with open(os.path.join(CASAOS_BACKUPS_DIR, backup_filename), 'w', encoding='utf-8') as f:
                     json.dump(new_data, f, ensure_ascii=False)
             except Exception:
                 pass
 
-        if os.path.exists(OLDSITE_BACKUPS_DIR):
+        if is_legacy_kirito and os.path.exists(OLDSITE_BACKUPS_DIR):
             try:
                 with open(os.path.join(OLDSITE_BACKUPS_DIR, backup_filename), 'w', encoding='utf-8') as f:
                     json.dump(new_data, f, ensure_ascii=False)
@@ -777,7 +942,7 @@ def save_tracker():
             changes_text = "Kayıt yapıldı ancak saatlerde bir değişiklik yapılmadı."
 
         message = (
-            "Kirito Takvimi Güncellendi!\n\n"
+            f"{user.capitalize()} Takvimi Güncellendi!\n\n"
             f"Tarih: {date_str} {time_str}\n\n"
             f"YAPILAN DEĞİŞİKLİKLER:\n{changes_text}"
         )
@@ -786,8 +951,8 @@ def save_tracker():
 
         return jsonify({
             'success': True,
-            'filename': 'kirito_data.json',
-            'path': 'saves/kirito_data.json',
+            'filename': data_filename,
+            'path': f'saves/{data_filename}',
             'backup': f"saves/backups/{backup_filename}",
             'changes_count': len(changes),
             'telegram_sent': telegram_ok,
@@ -801,21 +966,23 @@ def save_tracker():
 @app.route('/api/tracker/load', methods=['GET'])
 def load_tracker():
     try:
-        primary_file = os.path.join(SAVES_DIR, 'kirito_data.json')
+        user = _tracker_user()
+        data_filename = _tracker_filename(user)
+        primary_file = os.path.join(SAVES_DIR, data_filename)
         source_file = primary_file
-        if not os.path.exists(primary_file):
+        if user == 'kirito' and not os.path.exists(primary_file):
             if os.path.exists(os.path.join(CASAOS_DIR, 'kirito_data.json')):
                 source_file = os.path.join(CASAOS_DIR, 'kirito_data.json')
             elif os.path.exists(os.path.join(OLDSITE_DIR, 'kirito_data.json')):
                 source_file = os.path.join(OLDSITE_DIR, 'kirito_data.json')
 
         if not os.path.exists(source_file):
-            return jsonify({'success': False, 'exists': False, 'message': 'Kayıt dosyası bulunamadı.'}), 404
+            return jsonify({'success': False, 'exists': False, 'filename': data_filename, 'message': 'Kayıt dosyası bulunamadı.'}), 404
 
         with open(source_file, 'r', encoding='utf-8') as f:
             data = json.load(f)
 
-        return jsonify({'success': True, 'exists': True, 'filename': 'kirito_data.json', 'data': data})
+        return jsonify({'success': True, 'exists': True, 'filename': data_filename, 'data': data})
     except Exception as exc:
         return jsonify({'success': False, 'error': str(exc)}), 500
 
@@ -823,18 +990,20 @@ def load_tracker():
 @app.route('/api/tracker/send-telegram', methods=['POST'])
 def send_tracker_telegram():
     try:
+        user = _tracker_user()
+        data_filename = _tracker_filename(user)
         payload = request.get_json(force=True, silent=True) or {}
         inputs = payload.get('inputs', [])
         totals = payload.get('totals', [])
         grand_total = payload.get('grandTotal', '0.00')
 
         if len(inputs) < 28:
-            primary_file = os.path.join(SAVES_DIR, 'kirito_data.json')
+            primary_file = os.path.join(SAVES_DIR, data_filename)
             if os.path.exists(primary_file):
                 with open(primary_file, 'r', encoding='utf-8') as f:
                     inputs = json.load(f)
 
-        message = "📊 KIRITO TAKVIMI GUNCEL DURUM\n\n"
+        message = f"📊 {user.upper()} TAKVIMI GUNCEL DURUM\n\n"
         for w in range(4):
             message += f"{w + 1}. Hafta:\n"
             week_parts = []
@@ -862,10 +1031,12 @@ def send_tracker_telegram():
 @app.route('/api/tracker/saves', methods=['GET'])
 def list_tracker_saves():
     try:
+        user = _tracker_user()
+        prefix = f"{user}_data"
         files = []
         if os.path.exists(SAVES_DIR):
             for name in sorted(os.listdir(SAVES_DIR)):
-                if name.endswith('.json'):
+                if name.endswith('.json') and name.startswith(prefix):
                     fp = os.path.join(SAVES_DIR, name)
                     stat = os.stat(fp)
                     files.append({

@@ -439,6 +439,7 @@ kbd {
 .command__platform[data-platform="ig"] { color: #fff; border-color: transparent; background: linear-gradient(45deg, #f9a83a, #ea3a6d 50%, #8a3ad8); }
 .command__platform[data-platform="yt"] { color: #fff; border-color: transparent; background: #ff2b2b; }
 .command__platform[data-platform="tt"] { color: #fff; border-color: transparent; background: #111; box-shadow: -2px -2px 0 #25f4ee inset, 2px 2px 0 #fe2c55 inset; }
+.command__platform[data-platform="kick"] { color: #0b0b0e; border-color: transparent; background: #53fc18; }
 .command__input {
   flex: 1; min-width: 0; height: 48px; padding: 0 8px;
   border: 0; background: transparent; outline: none;
