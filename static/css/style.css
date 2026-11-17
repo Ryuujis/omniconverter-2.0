@@ -215,8 +215,9 @@ kbd {
   padding: clamp(34px, 6vw, 72px) 0 clamp(26px, 4vw, 44px);
 }
 .hero__num {
-  font: italic 400 clamp(90px, 11vw, 168px)/.78 var(--serif);
+  font: italic 400 clamp(90px, 11vw, 168px)/.82 var(--serif);
   letter-spacing: -.05em;
+  padding: .06em .14em .04em 0;
   color: transparent;
   -webkit-text-stroke: 1px rgba(241, 235, 224, .22);
   background: linear-gradient(160deg, rgba(255,90,54,.0) 40%, rgba(255,90,54,.55));
@@ -1242,6 +1243,35 @@ kbd {
   background: var(--accent);
   transition: width .3s var(--ease);
 }
+.wt-grand-row td {
+  padding-top: 12px;
+  padding-bottom: 6px;
+  border-top: 1px solid var(--line);
+}
+.wt-grand-label {
+  text-align: right;
+  font: 600 10px/1 var(--mono);
+  letter-spacing: 1.6px;
+  color: var(--muted);
+  padding-right: 10px;
+  vertical-align: middle;
+}
+.wt-grand-cell {
+  vertical-align: middle;
+}
+.wt-grand-box {
+  padding: 8px 10px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 90, 54, .32);
+  background: var(--accent-soft);
+  text-align: right;
+}
+.wt-grand-total {
+  display: block;
+  color: var(--accent);
+  font: 600 16px/1 var(--mono);
+  letter-spacing: -.5px;
+}
 
 /* Alt çubuk -------------------------------------------------------------- */
 .wt-workspace-foot {
@@ -1392,4 +1422,159 @@ kbd {
   .wt-orbit-scene { height: 200px; }
   .wt-orbit-time { font-size: 36px; }
   .wt-orbit-label { font-size: 8px; bottom: 0; right: 0; }
+}
+
+/* ==========================================================================
+   Krem (Açık) Tema — [data-theme="cream"]
+   ========================================================================== */
+[data-theme="cream"] {
+  color-scheme: light;
+  --bg: #f6f1e7;
+  --bg-2: #efe8da;
+  --bg-3: #fbf8f2;
+  --ink: #1f1c18;
+  --ink-2: #524b42;
+  --muted: #7c7468;
+  --faint: #b3aa9c;
+  --line: rgba(31, 28, 24, 0.09);
+  --line-2: rgba(31, 28, 24, 0.15);
+  --line-3: rgba(31, 28, 24, 0.25);
+  --card: rgba(255, 252, 246, 0.72);
+  --card-2: rgba(31, 28, 24, 0.045);
+
+  --accent: #e84824;
+  --accent-hi: #ff5a36;
+  --accent-lo: #cc3514;
+  --accent-ink: #fffaf3;
+  --accent-soft: rgba(232, 72, 36, 0.11);
+  --accent-glow: rgba(232, 72, 36, 0.24);
+
+  --ok: #1d8a4e;
+  --warn: #c47a08;
+  --bad: #d63838;
+  --info: #2d64c8;
+}
+
+[data-theme="cream"] ::-webkit-scrollbar-thumb { background: rgba(31, 28, 24, 0.16); }
+[data-theme="cream"] ::-webkit-scrollbar-thumb:hover { background-color: rgba(31, 28, 24, 0.28); }
+
+[data-theme="cream"] .ambient__glow { opacity: 0.38; }
+[data-theme="cream"] .ambient__glow--a {
+  background: radial-gradient(circle, rgba(255, 118, 72, 0.34), rgba(255, 118, 72, 0) 65%);
+}
+[data-theme="cream"] .ambient__glow--b {
+  background: radial-gradient(circle, rgba(214, 178, 120, 0.35), rgba(214, 178, 120, 0) 65%);
+}
+[data-theme="cream"] .ambient__grid {
+  background-image:
+    linear-gradient(to right, rgba(31, 28, 24, 0.045) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(31, 28, 24, 0.045) 1px, transparent 1px);
+}
+
+[data-theme="cream"] .rail {
+  background: linear-gradient(180deg, rgba(239, 232, 218, 0.92), rgba(246, 241, 231, 0.86));
+}
+[data-theme="cream"] .rail__user {
+  background: rgba(31, 28, 24, 0.04) !important;
+}
+[data-theme="cream"] .hero__num {
+  -webkit-text-stroke: 1px rgba(31, 28, 24, 0.28);
+  background: linear-gradient(160deg, rgba(31, 28, 24, 0.14) 20%, rgba(232, 72, 36, 0.62) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+}
+[data-theme="cream"] .card {
+  background:
+    linear-gradient(180deg, rgba(255, 253, 249, 0.88), rgba(250, 245, 235, 0.76)) padding-box;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.85), 0 20px 44px -28px rgba(45, 36, 22, 0.18);
+}
+[data-theme="cream"] .btn--ghost:hover:not(:disabled) {
+  background: rgba(31, 28, 24, 0.08);
+}
+[data-theme="cream"] .tag {
+  background: rgba(251, 248, 242, 0.88);
+  border-color: var(--line-2);
+  color: var(--ink);
+}
+[data-theme="cream"] .tag--solid {
+  background: var(--accent);
+  color: var(--accent-ink);
+  border-color: transparent;
+}
+[data-theme="cream"] .input,
+[data-theme="cream"] .select,
+[data-theme="cream"] .textarea,
+[data-theme="cream"] .seg,
+[data-theme="cream"] .swatch-input,
+[data-theme="cream"] .command,
+[data-theme="cream"] .merge-item,
+[data-theme="cream"] .code {
+  background: rgba(255, 253, 248, 0.88);
+}
+[data-theme="cream"] .select option,
+[data-theme="cream"] select option {
+  background: #fbf8f2;
+  color: var(--ink);
+}
+[data-theme="cream"] .command__clear:hover {
+  background: rgba(31, 28, 24, 0.1);
+}
+[data-theme="cream"] .command__quality select {
+  background: rgba(31, 28, 24, 0.045) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23524b42' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m7 10 5 5 5-5'/%3E%3C/svg%3E") no-repeat right 12px center / 16px;
+}
+[data-theme="cream"] .seg__btn:hover {
+  background: rgba(31, 28, 24, 0.05);
+}
+[data-theme="cream"] .seg__btn.active {
+  background: var(--ink);
+  color: #fbf8f2;
+  box-shadow: 0 6px 16px -8px rgba(31, 28, 24, 0.35);
+}
+[data-theme="cream"] .fmt {
+  background: rgba(255, 253, 249, 0.78);
+}
+[data-theme="cream"] .fmt:hover {
+  background: rgba(255, 255, 255, 0.96);
+}
+[data-theme="cream"] .fmt__go {
+  background: var(--ink);
+  color: #fbf8f2;
+}
+[data-theme="cream"] .fmt--preferred {
+  background: linear-gradient(90deg, rgba(232, 72, 36, 0.12), rgba(255, 253, 249, 0.65));
+}
+[data-theme="cream"] .deck,
+[data-theme="cream"] .qr-stage {
+  background: rgba(239, 232, 218, 0.55);
+}
+[data-theme="cream"] .desk {
+  background:
+    radial-gradient(circle at 1px 1px, rgba(31, 28, 24, 0.1) 1px, transparent 0) 0 0 / 18px 18px,
+    rgba(239, 232, 218, 0.72);
+}
+[data-theme="cream"] .file-badge,
+[data-theme="cream"] .copy-btn:hover {
+  background: var(--ink);
+  color: #fbf8f2;
+}
+[data-theme="cream"] .toast {
+  background: rgba(251, 248, 242, 0.95);
+  box-shadow: 0 20px 44px -18px rgba(45, 36, 22, 0.25);
+}
+[data-theme="cream"] .wt-time-input {
+  background: rgba(255, 253, 249, 0.9);
+}
+[data-theme="cream"] .wt-week-foot {
+  background: rgba(31, 28, 24, 0.025);
+}
+[data-theme="cream"] .wt-dialog-backdrop {
+  background: rgba(31, 28, 24, 0.38);
+}
+[data-theme="cream"] .wt-dialog-card {
+  box-shadow: 0 30px 90px rgba(45, 36, 22, 0.28);
+}
+@media (max-width: 960px) {
+  [data-theme="cream"] .rail {
+    background: rgba(246, 241, 231, 0.92);
+  }
 }

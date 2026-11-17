@@ -19,6 +19,7 @@
   const saveStatus     = document.getElementById('wt-save-status');
   const statusText     = document.getElementById('wt-status-text');
   const monthlyTotal   = document.getElementById('wt-monthly-total');
+  const tableGrandTotal = document.getElementById('wt-table-grand-total');
   const clearDialog    = document.getElementById('wt-clear-dialog');
   const filledDaysEl   = document.getElementById('wt-filled-days');
   const rhythmPlotEl   = document.getElementById('wt-rhythm-plot');
@@ -168,6 +169,7 @@
     const monthly = totals.reduce((s, v) => s + v, 0);
     const fmt = formatDuration(monthly);
     if (monthlyTotal.textContent !== fmt) monthlyTotal.textContent = fmt;
+    if (tableGrandTotal && tableGrandTotal.textContent !== fmt) tableGrandTotal.textContent = fmt;
     filledDaysEl.textContent = filled;
 
     const peak = Math.max(...totals);

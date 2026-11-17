@@ -6,6 +6,15 @@
   <meta name="color-scheme" content="dark">
   <meta name="theme-color" content="#09090b">
   <title>Misacon Studio</title>
+  <script>
+    (function () {
+      try {
+        if (localStorage.getItem('misacon_theme') === 'cream') {
+          document.documentElement.setAttribute('data-theme', 'cream');
+        }
+      } catch (e) {}
+    })();
+  </script>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='9' fill='%2309090b'/%3E%3Ccircle cx='16' cy='16' r='8.5' fill='none' stroke='%23ff5a36' stroke-width='2.4'/%3E%3Ccircle cx='22.5' cy='9.5' r='2.6' fill='%23f1ebe0'/%3E%3C/svg%3E">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
@@ -43,6 +52,8 @@
     <symbol id="i-film" viewBox="0 0 24 24"><rect x="3.5" y="4.5" width="17" height="15" rx="3"/><path d="M7.5 4.5v15M16.5 4.5v15M3.5 9.5h4M3.5 14.5h4M16.5 9.5h4M16.5 14.5h4"/></symbol>
     <symbol id="i-music" viewBox="0 0 24 24"><path d="M9 17.5V6l10-2v11.5"/><circle cx="6.75" cy="17.5" r="2.25"/><circle cx="16.75" cy="15.5" r="2.25"/></symbol>
     <symbol id="i-pages" viewBox="0 0 24 24"><rect x="6.5" y="3.5" width="12" height="15" rx="2"/><path d="M4.5 7v11.5a2 2 0 0 0 2 2H15"/></symbol>
+    <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2.5v2.2M12 19.3v2.2M4.93 4.93l1.56 1.56M17.51 17.51l1.56 1.56M2.5 12h2.2M19.3 12h2.2M4.93 19.07l1.56-1.56M17.51 6.49l1.56-1.56"/></symbol>
+    <symbol id="i-moon" viewBox="0 0 24 24"><path d="M20.5 14.2A8.5 8.5 0 0 1 9.8 3.5a8.5 8.5 0 1 0 10.7 10.7Z"/></symbol>
   </defs>
 </svg>
 
@@ -120,6 +131,9 @@
     <header class="topbar">
       <div class="crumb"><span class="crumb__studio">Studio</span><span class="crumb__sep">/</span><span id="crumbName">Reels &amp; Video İndirici</span></div>
       <div style="display:flex;align-items:center;gap:8px;">
+        <button class="btn btn--ghost btn--sm" id="themeToggleBtn" type="button" title="Tema Değiştir" aria-label="Tema Değiştir">
+          <svg class="ico"><use href="#i-sun"/></svg><span id="themeToggleLabel">Light</span>
+        </button>
         <button class="btn btn--ghost btn--sm" id="pasteLinkBtn" type="button">
           <svg class="ico"><use href="#i-paste"/></svg><span>Bağlantı Yapıştır</span>
         </button>
@@ -652,6 +666,16 @@
               </tr>
             </thead>
             <tbody id="wt-calendar-body"></tbody>
+            <tfoot>
+              <tr class="wt-grand-row">
+                <td colspan="8" class="wt-grand-label">GENEL TOPLAM</td>
+                <td class="wt-week-total-cell wt-grand-cell">
+                  <div class="wt-grand-box">
+                    <output class="wt-grand-total" id="wt-table-grand-total" aria-live="polite" aria-atomic="true">0:00</output>
+                  </div>
+                </td>
+              </tr>
+            </tfoot>
           </table>
         </div>
         <div class="wt-workspace-foot">

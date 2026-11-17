@@ -152,6 +152,39 @@
     }
   });
 
+  // ---------------- Tema (Koyu / Krem) ----------------
+  const THEME_KEY = 'misacon_theme';
+  const themeBtn = document.getElementById('themeToggleBtn');
+  const themeLabel = document.getElementById('themeToggleLabel');
+
+  function applyTheme(theme) {
+    const isCream = theme === 'cream';
+    if (isCream) {
+      document.documentElement.setAttribute('data-theme', 'cream');
+    } else {
+      document.documentElement.removeAttribute('data-theme');
+    }
+    const metaScheme = document.querySelector('meta[name="color-scheme"]');
+    const metaTheme = document.querySelector('meta[name="theme-color"]');
+    if (metaScheme) metaScheme.setAttribute('content', isCream ? 'light' : 'dark');
+    if (metaTheme) metaTheme.setAttribute('content', isCream ? '#f6f1e7' : '#09090b');
+    if (themeBtn) {
+      const use = themeBtn.querySelector('use');
+      if (use) use.setAttribute('href', isCream ? '#i-moon' : '#i-sun');
+      themeBtn.setAttribute('aria-pressed', String(isCream));
+    }
+    if (themeLabel) {
+      themeLabel.textContent = isCream ? 'Dark' : 'Light';
+    }
+  }
+
+  applyTheme(localStorage.getItem(THEME_KEY) === 'cream' ? 'cream' : 'dark');
+  themeBtn?.addEventListener('click', () => {
+    const next = document.documentElement.getAttribute('data-theme') === 'cream' ? 'dark' : 'cream';
+    try { localStorage.setItem(THEME_KEY, next); } catch (e) {}
+    applyTheme(next);
+  });
+
   // ---------------- Kart ışığı ----------------
   document.addEventListener('pointermove', (e) => {
     const card = e.target.closest?.('.card');
