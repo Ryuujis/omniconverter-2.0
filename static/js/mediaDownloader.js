@@ -24,7 +24,7 @@
   const MIRROR_LABELS = {
     snapinsta: 'SnapInsta', fastdl: 'FastDL', saveclip: 'SaveClip', ddinstagram: 'ddinstagram',
     ssyoutube: 'SSYouTube · 1080p', y2mate_mp4: 'Y2Mate · MP4 1080p/720p', y2mate_mp3: 'Y2Mate · MP3 320 kbps',
-    savefrom: 'SaveFrom', yt1s: 'YT1s',
+    savefrom: 'SaveFrom', yt1s: 'YT1s', snaptik: 'SnapTik', ssstik: 'SSSTik',
   };
   const FALLBACK_COVER = 'data:image/svg+xml,' + encodeURIComponent(
     `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360"><defs><radialGradient id="g" cx="70%" cy="20%" r="90%"><stop offset="0" stop-color="#ff5a36" stop-opacity=".55"/><stop offset=".6" stop-color="#1a1a20"/><stop offset="1" stop-color="#0b0b0e"/></radialGradient></defs><rect width="640" height="360" fill="url(#g)"/><circle cx="320" cy="180" r="44" fill="none" stroke="#f1ebe0" stroke-opacity=".7" stroke-width="2"/><path d="M307 160v40l33-20z" fill="#f1ebe0" fill-opacity=".85"/></svg>`);
@@ -132,7 +132,12 @@
       const a = document.createElement('a');
       a.className = `fmt fmt--${isAudio ? 'audio' : 'video'}`;
       a.style.animationDelay = `${i * 45}ms`;
-      a.href = `/api/proxy-download?url=${encodeURIComponent(f.url)}&filename=${encodeURIComponent(filename)}`;
+      const params = new URLSearchParams({ url: f.url, filename });
+      if (f.source_url) {
+        params.set('source_url', f.source_url);
+        if (f.id) params.set('format_id', f.id);
+      }
+      a.href = `/api/proxy-download?${params.toString()}`;
       a.setAttribute('download', filename);
       const preferred = prefId && f.id === prefId;
       if (preferred) a.classList.add('fmt--preferred');

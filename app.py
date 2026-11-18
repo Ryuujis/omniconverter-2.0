@@ -452,6 +452,109 @@ def analyze_kick(url, data):
     data['direct_video_url'] = direct_mp4 or (videos[0]['url'] if videos else '')
 
 
+def analyze_tiktok(url, data):
+    enc = quote(url, safe='')
+    data['fallback_links'] = {
+        'snaptik': f'https://snaptik.app/?url={enc}',
+        'ssstik': f'https://ssstik.io/en?url={enc}',
+    }
+
+    info = ytdlp_extract(url, {'socket_timeout': 10})
+    if info:
+        data['title'] = info.get('title') or 'TikTok Video'
+        data['thumbnail'] = info.get('thumbnail') or ''
+        data['author'] = info.get('uploader') or info.get('creator') or info.get('channel') or ''
+        data['duration'] = int(info.get('duration') or 0)
+
+        by_height = {}
+        for f in info.get('formats') or []:
+            furl = f.get('url') or ''
+            if not furl:
+                continue
+            vcodec = f.get('vcodec') or ''
+            acodec = f.get('acodec') or ''
+            if vcodec == 'none' or acodec == 'none':
+                continue
+            fid = str(f.get('format_id') or '')
+            # Filigranlı 'download' veya tarayıcıda sorun çıkarabilen bytevc1 yerine h264'ü tercih et
+            is_h264 = 'h264' in vcodec.lower() or 'avc' in vcodec.lower() or 'h264' in fid.lower()
+            is_watermarked = fid.lower().startswith('download')
+            h = int(f.get('height') or 0)
+            tbr = float(f.get('tbr') or 0)
+            score = (0 if is_watermarked else 1, 1 if is_h264 else 0, tbr)
+
+            prev = by_height.get(h)
+            if prev and prev[0] >= score:
+                continue
+            tag, _ = height_label(h)
+            if h <= 0:
+                tag = '720p'
+            label = f'MP4 {h}p (Filigransız)' if (h > 0 and not is_watermarked) else (f'MP4 {h}p' if h > 0 else 'HD MP4 Video')
+            by_height[h] = (score, {
+                'id': fid or f'tt_{h}',
+                'label': label,
+                'quality': h or 720,
+                'quality_tag': tag,
+                'ext': 'mp4',
+                'type': 'video',
+                'url': furl,
+                'source_url': url,
+                'filesize': f.get('filesize') or f.get('filesize_approx') or 0,
+            })
+
+        videos = [item[1] for item in sorted(by_height.values(), key=lambda x: x[1]['quality'], reverse=True)]
+        data['formats'].extend(videos)
+        if videos:
+            best_id = videos[0]['id']
+            data['direct_video_url'] = f'/api/proxy-download?source_url={enc}&format_id={quote(best_id, safe="")}&inline=1'
+            data['formats'].append({
+                'id': 'bestaudio/best',
+                'label': 'Ses / Müzik (MP3/M4A)',
+                'quality': 0,
+                'quality_tag': 'audio',
+                'ext': 'm4a',
+                'type': 'audio',
+                'url': videos[0]['url'],
+                'source_url': url,
+                'filesize': 0,
+            })
+
+    if not data['formats']:
+        try:
+            r = requests.post('https://www.tikwm.com/api/', data={'url': url, 'hd': 1},
+                              headers={'User-Agent': USER_AGENT}, timeout=10)
+            j = r.json() if r.ok else {}
+            d = j.get('data') or {}
+            if j.get('code') == 0 and d:
+                data['title'] = d.get('title') or data['title'] or 'TikTok Video'
+                data['thumbnail'] = d.get('cover') or d.get('origin_cover') or data['thumbnail']
+                author = d.get('author') or {}
+                data['author'] = author.get('nickname') or author.get('unique_id') or data['author']
+                data['duration'] = int(d.get('duration') or data['duration'] or 0)
+                if d.get('hdplay'):
+                    data['formats'].append({
+                        'id': 'tt_hd', 'label': '1080p Full HD MP4 (Filigransız)',
+                        'quality': 1080, 'quality_tag': '1080p', 'ext': 'mp4',
+                        'type': 'video', 'url': d['hdplay'], 'filesize': d.get('hd_size') or 0,
+                    })
+                if d.get('play'):
+                    data['formats'].append({
+                        'id': 'tt_sd', 'label': '720p HD MP4 (Filigransız)',
+                        'quality': 720, 'quality_tag': '720p', 'ext': 'mp4',
+                        'type': 'video', 'url': d['play'], 'filesize': d.get('size') or 0,
+                    })
+                if d.get('music'):
+                    data['formats'].append({
+                        'id': 'tt_audio', 'label': 'Ses / Müzik (MP3)',
+                        'quality': 0, 'quality_tag': 'audio', 'ext': 'mp3',
+                        'type': 'audio', 'url': d['music'], 'filesize': 0,
+                    })
+                if data['formats']:
+                    data['direct_video_url'] = data['formats'][0]['url']
+        except Exception:
+            pass
+
+
 def analyze_generic(url, data):
     info = ytdlp_extract(url)
     if not info:
@@ -483,6 +586,8 @@ def media_info():
             analyze_youtube(url, data)
         elif platform == 'kick':
             analyze_kick(url, data)
+        elif platform == 'tiktok':
+            analyze_tiktok(url, data)
         else:
             analyze_generic(url, data)
         return jsonify({'success': True, 'data': data})
@@ -501,30 +606,30 @@ def _find_ffmpeg():
         return None
 
 
-def _download_hls_response(url, filename):
+def _download_ytdlp_response(target_url, filename, format_id=None, inline=False):
     if yt_dlp is None:
-        return Response('HLS indirme için yt-dlp gerekli', status=500, mimetype='text/plain')
-    tmpdir = tempfile.mkdtemp(prefix='misacon_hls_')
-    out_path = os.path.join(tmpdir, 'video.mp4')
+        return Response('İndirme için yt-dlp gerekli', status=500, mimetype='text/plain')
+    tmpdir = tempfile.mkdtemp(prefix='misacon_dl_')
+    out_path = os.path.join(tmpdir, 'media.mp4')
     ffmpeg_bin = _find_ffmpeg()
     opts = {
         'quiet': True,
         'no_warnings': True,
         'outtmpl': out_path,
-        'format': 'best',
+        'format': format_id or 'best',
         'merge_output_format': 'mp4',
     }
     if ffmpeg_bin:
         opts['ffmpeg_location'] = ffmpeg_bin
     try:
         with yt_dlp.YoutubeDL(opts) as ydl:
-            ydl.download([url])
+            ydl.download([target_url])
         if not os.path.exists(out_path):
             files = [f for f in os.listdir(tmpdir) if not f.endswith('.part')]
             if not files:
-                raise RuntimeError('HLS akışı indirilemedi')
+                raise RuntimeError('Medya akışı indirilemedi')
             out_path = os.path.join(tmpdir, files[0])
-        if ffmpeg_bin:
+        if ffmpeg_bin and out_path.lower().endswith('.mp4'):
             fixed_path = os.path.join(tmpdir, 'faststart.mp4')
             remux = subprocess.run(
                 [ffmpeg_bin, '-y', '-i', out_path, '-c', 'copy', '-movflags', '+faststart', fixed_path],
@@ -537,11 +642,13 @@ def _download_hls_response(url, filename):
         shutil.rmtree(tmpdir, ignore_errors=True)
         return Response(f'İndirme hatası: {exc}', status=500, mimetype='text/plain')
 
-    encoded = quote(filename)
-    headers = {
-        'Content-Disposition': f'attachment; filename="{encoded}"; filename*=UTF-8\'\'{encoded}',
-        'Content-Length': str(size),
-    }
+    headers = {'Content-Length': str(size)}
+    if not inline:
+        encoded = quote(filename)
+        headers['Content-Disposition'] = f'attachment; filename="{encoded}"; filename*=UTF-8\'\'{encoded}'
+
+    ext = os.path.splitext(out_path)[1].lower()
+    ctype = 'audio/mp4' if ext == '.m4a' else ('audio/mpeg' if ext == '.mp3' else 'video/mp4')
 
     def generate():
         try:
@@ -554,19 +661,24 @@ def _download_hls_response(url, filename):
         finally:
             shutil.rmtree(tmpdir, ignore_errors=True)
 
-    return Response(generate(), headers=headers, content_type='video/mp4')
+    return Response(generate(), headers=headers, content_type=ctype)
 
 
 @app.route('/api/proxy-download')
 def proxy_download():
     url = request.args.get('url')
+    source_url = request.args.get('source_url')
+    format_id = request.args.get('format_id')
+    inline = request.args.get('inline') == '1'
     filename = request.args.get('filename') or 'misacon_download.mp4'
-    if not url:
+    if not url and not source_url:
         return Response('URL parametresi eksik', status=400, mimetype='text/plain')
     try:
+        if source_url:
+            return _download_ytdlp_response(source_url, filename, format_id=format_id, inline=inline)
         parsed = urlparse(url)
         if parsed.path.lower().endswith('.m3u8'):
-            return _download_hls_response(url, filename)
+            return _download_ytdlp_response(url, filename, inline=inline)
         host = parsed.netloc.lower()
         if 'googlevideo' in host or 'youtube' in host:
             referer = 'https://www.youtube.com/'
@@ -574,6 +686,8 @@ def proxy_download():
             referer = 'https://www.instagram.com/'
         elif 'kick' in host:
             referer = 'https://kick.com/'
+        elif 'tiktok' in host:
+            referer = 'https://www.tiktok.com/'
         else:
             referer = f'{parsed.scheme}://{parsed.netloc}/'
         upstream = requests.get(url, stream=True, timeout=20,
